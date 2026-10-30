@@ -23,3 +23,39 @@ body {
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-large);
 }
+
+/* Full-screen update prompt. It sits above the app and cannot be dismissed. */
+.blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--mat-sys-surface);
+}
+
+.blocker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  width: min(520px, 100%);
+
+  h2 {
+    margin: 0;
+    font: var(--mat-sys-headline-small);
+  }
+  p {
+    margin: 0;
+  }
+  mat-progress-bar {
+    width: 100%;
+  }
+  .big {
+    width: 48px;
+    height: 48px;
+    font-size: 48px;
+    color: var(--mat-sys-primary);
+  }
+}

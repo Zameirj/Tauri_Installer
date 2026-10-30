@@ -261,6 +261,30 @@ form {
   background: #d93025;
 }
 
+.info {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  color: var(--mat-sys-primary);
+  cursor: help;
+  border-radius: 50%;
+  outline-offset: 2px;
+}
+
+.hint {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--mat-sys-tertiary);
+}
+
 .group-title {
   margin: 0;
   padding: 10px 16px;

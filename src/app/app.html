@@ -4,6 +4,46 @@
   <span class="sub">v{{ appVersion() }}</span>
 </header>
 
+@if (availableUpdate(); as update) {
+  <div class="blocker" role="alertdialog" aria-modal="true" aria-labelledby="update-title">
+    <div class="blocker-card">
+      <mat-icon class="big">system_update</mat-icon>
+      <h2 id="update-title">Update required</h2>
+      <p>
+        Caseware Installer <strong>{{ update.version }}</strong> is available. You are on
+        {{ appVersion() }}. Install the update to continue.
+      </p>
+      @if (update.notes) {
+        <p class="hint">{{ update.notes }}</p>
+      }
+      @if (updating()) {
+        <mat-progress-bar
+          [mode]="progressPct() === null ? 'indeterminate' : 'determinate'"
+          [value]="progressPct() ?? 0"
+        />
+        <p class="hint">{{ progressText() }}. The app restarts when it is done.</p>
+      } @else if (updateSavedTo()) {
+        <p class="ok">
+          <mat-icon>check_circle</mat-icon>
+          Downloaded, but this copy cannot replace itself here.
+        </p>
+        <p class="hint">Close Caseware Installer and run the new file from: {{ updateSavedTo() }}</p>
+      } @else {
+        @if (updateError()) {
+          <p class="error" role="alert">
+            <mat-icon>error</mat-icon>
+            {{ updateError() }}
+          </p>
+        }
+        <button mat-flat-button type="button" (click)="startUpdate()">
+          <mat-icon>download</mat-icon>
+          {{ updateError() ? 'Try again' : 'Update now' }}
+        </button>
+      }
+    </div>
+  </div>
+}
+
 <main>
   <div class="top">
     <nav class="steps" aria-label="Progress">
@@ -139,6 +179,18 @@
                         </span>
                         @if (product.notification) {
                           <span class="chip new">{{ product.notification }}</span>
+                        }
+                        @if (product.description) {
+                          <mat-icon
+                            #info="matTooltip"
+                            class="info"
+                            tabindex="0"
+                            role="img"
+                            aria-label="Product description"
+                            [matTooltip]="product.description"
+                            (click)="$event.preventDefault(); $event.stopPropagation(); info.show()"
+                            (keydown.enter)="$event.preventDefault(); info.show()"
+                          >info</mat-icon>
                         }
                       </span>
                       <span class="version">{{ product.version }}</span>

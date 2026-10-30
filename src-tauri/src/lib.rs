@@ -1,3 +1,5 @@
+mod update;
+
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -17,6 +19,9 @@ pub struct OrgProduct {
     /// Badge text such as "New!", when the product has one.
     #[serde(default)]
     pub notification: Option<String>,
+    /// Longer text shown in the info tooltip, when the API sends one.
+    #[serde(default)]
+    pub description: Option<String>,
     #[serde(default)]
     pub licences: Vec<Licence>,
 }
@@ -68,7 +73,15 @@ async fn get_org_products(download_code: String) -> Result<Vec<OrgProduct>, Stri
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_org_products])
+        .invoke_handler(tauri::generate_handler![
+            get_org_products,
+            update::check_for_update,
+            update::install_update
+        ])
+        .setup(|_app| {
+            update::cleanup_old();
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running Caseware Installer");
 }

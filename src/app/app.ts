@@ -14,11 +14,14 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ApiService, OrgProduct } from './api.service';
+import { ApiService, OrgProduct, UpdateInfo, UpdateProgress } from './api.service';
+import { compareVersions, UPDATE_CHECK_URL, UPDATE_FILE_KEY, UPDATE_SIGNED_URL_ENDPOINT } from './update-config';
 
 const EULA_URL =
   'https://webcontent.casewareafrica.com/CaseWare_Community/My%20Account%20Docs/CWA%20EULA.pdf';
@@ -82,7 +85,9 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -111,6 +116,23 @@ export class App {
 
   /** Version from tauri.conf.json, shown in the header as in Import Centre. */
   readonly appVersion = signal('');
+
+  /** Set when the version endpoint reports a newer release. The UI blocks until it is installed. */
+  readonly availableUpdate = signal<UpdateInfo | null>(null);
+  readonly updating = signal(false);
+  readonly updateProgress = signal<UpdateProgress | null>(null);
+  readonly updateError = signal('');
+  readonly updateSavedTo = signal('');
+  readonly progressPct = computed(() => {
+    const p = this.updateProgress();
+    return p?.total ? Math.round((p.downloaded * 100) / p.total) : null;
+  });
+  readonly progressText = computed(() => {
+    const p = this.updateProgress();
+    if (!p) return 'Contacting the download service...';
+    const mb = (n: number) => (n / 1048576).toFixed(1);
+    return p.total ? `${mb(p.downloaded)} of ${mb(p.total)} MB` : `${mb(p.downloaded)} MB`;
+  });
 
   readonly screen = signal<'details' | 'products'>('details');
   readonly steps = STEPS;
@@ -168,8 +190,42 @@ export class App {
 
   constructor() {
     getVersion()
-      .then((version) => this.appVersion.set(version))
+      .then((version) => {
+        this.appVersion.set(version);
+        void this.checkForUpdate();
+      })
       .catch(() => this.appVersion.set(''));
+  }
+
+  /** Asks the update endpoint for the latest version. Failures are silent (the app keeps working). */
+  async checkForUpdate(): Promise<void> {
+    if (!UPDATE_CHECK_URL) return;
+    try {
+      const latest = await this.api.checkForUpdate(UPDATE_CHECK_URL);
+      this.availableUpdate.set(compareVersions(latest.version, this.appVersion()) > 0 ? latest : null);
+    } catch (e) {
+      console.warn('Update check failed', e);
+    }
+  }
+
+  /** The update is mandatory: download it, swap it in and let the backend restart the app. */
+  async startUpdate(): Promise<void> {
+    const latest = this.availableUpdate();
+    if (!latest) return;
+    this.updating.set(true);
+    this.updateError.set('');
+    this.updateProgress.set(null);
+    const unlisten = await this.api.onUpdateProgress((p) => this.updateProgress.set(p));
+    try {
+      const key = UPDATE_FILE_KEY.replace('{version}', latest.version);
+      const result = await this.api.installUpdate(UPDATE_SIGNED_URL_ENDPOINT, key);
+      if (result.savedTo) this.updateSavedTo.set(result.savedTo); // otherwise the app restarts itself
+    } catch (e) {
+      this.updateError.set(String(e));
+    } finally {
+      unlisten();
+      this.updating.set(false);
+    }
   }
 
   /** Removes leading and trailing spaces from the download code as it is typed or pasted. */
