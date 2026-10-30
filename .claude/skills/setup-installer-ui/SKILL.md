@@ -1,9 +1,9 @@
 ---
 name: setup-installer-ui
-description: UI rules for the Setup Installer Angular Material app (registration form, product list with grouping, search and highlighting, fixed header layout). Use when adding or changing any screen, control, list, search, badge or layout in this repo.
+description: UI rules for the Caseware Installer Angular Material app (registration form, product list with grouping, search and highlighting, fixed header layout). Use when adding or changing any screen, control, list, search, badge or layout in this repo.
 ---
 
-# Setup Installer UI
+# Caseware Installer UI
 
 Follow these rules when changing `src/app/`. They describe what the UI already does, so new work stays consistent. The full behaviour is in [README.md](../../../README.md).
 
@@ -92,4 +92,4 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 3. The Next or Download button is still in the toolbar at the top.
 4. The app works at 900 × 640 and at 1377 × 835 without horizontal scrolling.
 5. Light and dark themes both read clearly (the highlight colours are fixed, so check them on both).
-6. New text uses sentence case, and no string says "Setup Installer" or "Caseware Installer" inconsistently. Check the title decision in README first.
+6. New text uses sentence case, and the app is called "Caseware Installer" everywhere (header, window title, page title).

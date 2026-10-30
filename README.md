@@ -1,4 +1,4 @@
-# Setup Installer
+# Caseware Installer
 
 A Windows desktop app (Tauri 2 + Angular 22 + Angular Material) that takes a **download code** and **email**, loads the products that the organisation is entitled to, and lets the user select the ones to download.
 
@@ -19,7 +19,7 @@ Built as a single portable exe. Package manager: **pnpm**.
 | `pnpm tauri:dev` | Run the full app with hot reload |
 | `pnpm build` | Production Angular build into `dist/setup-installer` |
 | `pnpm tauri:build` | Full build with installer bundles |
-| `pnpm build:portable` | Release exe with no bundle, copied to `release/SetupInstaller_<version>_portable.exe` |
+| `pnpm build:portable` | Release exe with no bundle, copied to `release/CasewareInstaller_<version>_portable.exe` |
 
 ## Project layout
 
@@ -89,7 +89,6 @@ The app has a three-step header. Only the first two steps have screens so far.
 
 ## Decisions to revisit
 
-- **Window title:** the header reads "Caseware Installer", but the Tauri window title and product name are still "Setup Installer". Pick one and update `src-tauri/tauri.conf.json` and `index.html`.
 - **Download action:** the Download button is a placeholder. The next step needs a definition (what is downloaded, where it is saved, whether it uses the `versions` list).
 - **Install/Distribution:** step 3 is shown in the header but has no screen.
 - **Remote self-update:** the Import Centre app has one; this app does not.

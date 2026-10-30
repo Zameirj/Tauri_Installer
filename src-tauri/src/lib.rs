@@ -70,5 +70,5 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_org_products])
         .run(tauri::generate_context!())
-        .expect("error while running Setup Installer");
+        .expect("error while running Caseware Installer");
 }

@@ -1,7 +1,7 @@
 [package]
 name = "setup-installer"
 version = "1.0.0"
-description = "Setup Installer"
+description = "Caseware Installer"
 authors = ["AdaptIT"]
 license = ""
 repository = ""

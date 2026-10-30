@@ -11,6 +11,6 @@ if (!existsSync(source)) {
 }
 
 mkdirSync('release', { recursive: true });
-const target = `release/SetupInstaller_${version}_portable.exe`;
+const target = `release/CasewareInstaller_${version}_portable.exe`;
 copyFileSync(source, target);
 console.log(`Portable build: ${target} (${(statSync(target).size / 1048576).toFixed(1)} MB)`);

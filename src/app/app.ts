@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ApiService, OrgProduct } from './api.service';
 
@@ -108,6 +109,9 @@ export class App {
     }),
   });
 
+  /** Version from tauri.conf.json, shown in the header as in Import Centre. */
+  readonly appVersion = signal('');
+
   readonly screen = signal<'details' | 'products'>('details');
   readonly steps = STEPS;
   readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : 1));
@@ -161,6 +165,12 @@ export class App {
       }))
       .filter((group) => group.products.length > 0);
   });
+
+  constructor() {
+    getVersion()
+      .then((version) => this.appVersion.set(version))
+      .catch(() => this.appVersion.set(''));
+  }
 
   async next(): Promise<void> {
     this.error.set(null);

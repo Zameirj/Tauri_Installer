@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Setup Installer",
-  "mainBinaryName": "SetupInstaller",
+  "productName": "Caseware Installer",
+  "mainBinaryName": "CasewareInstaller",
   "version": "1.0.0",
   "identifier": "com.adaptit.setupinstaller",
   "build": {
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "Setup Installer",
+        "title": "Caseware Installer",
         "width": 1377,
         "height": 835,
         "resizable": true,
