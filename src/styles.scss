@@ -2,13 +2,13 @@
 @import 'material-icons/iconfont/filled.css';
 
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
   @include mat.theme(
     (
       color: mat.$azure-palette,
       typography: (
-        plain-family: 'Segoe UI, system-ui, sans-serif',
-        brand-family: 'Segoe UI, system-ui, sans-serif',
+        plain-family: "'League Spartan', 'Segoe UI', system-ui, sans-serif",
+        brand-family: "'League Spartan', 'Segoe UI', system-ui, sans-serif",
       ),
       density: 0,
     )
@@ -22,6 +22,66 @@ body {
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-large);
+}
+
+/* Brand colours from the company website. Use these for brand accents only. */
+:root {
+  --brand-blue: linear-gradient(90deg, #2f5bea 0%, #5a57c7 100%);
+  --brand-coral: linear-gradient(90deg, #ff645c 0%, #e956af 100%);
+  --brand-card-accent: #f65e7b;
+}
+
+/* QR code under the registration panel. */
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  text-align: center;
+
+  img {
+    border-radius: 8px;
+  }
+
+  p {
+    max-width: 360px;
+    margin: 0;
+    font: var(--mat-sys-title-medium);
+    font-weight: 600;
+    color: var(--mat-sys-primary);
+  }
+}
+
+/* Gradient heading text, as on the website titles. */
+.brand-title {
+  font-weight: 700;
+  background: linear-gradient(90deg, #ff645b 0%, #ee5a98 22%, #1c5eed 45%, #1c5eed 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* Button labels are white when enabled; disabled buttons keep Material's greyed-out text. */
+button.mat-mdc-button-base:not(:disabled) {
+  color: #fff !important;
+}
+
+/* Primary actions: filled brand gradient with rounded corners, as on the website. */
+button.brand {
+  --mdc-filled-button-container-color: transparent;
+  --mdc-filled-button-label-text-color: #fff;
+  background-image: var(--brand-blue);
+  border-radius: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  &:disabled {
+    --mdc-filled-button-disabled-container-color: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
+    --mdc-filled-button-disabled-label-text-color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
+    background-image: none;
+  }
 }
 
 /* Full-screen update prompt. It sits above the app and cannot be dismissed. */

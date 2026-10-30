@@ -12,6 +12,7 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 - Angular 22 standalone components, signals (`signal`, `computed`), reactive forms, and `@if` / `@for` control flow. No NgModules.
 - Angular Material 22 with the azure palette. Use Material components (`mat-form-field`, `mat-stroked-button`, `mat-checkbox`, `mat-icon`, `mat-progress-spinner`) before writing custom controls.
 - Colours and type come from Material tokens (`var(--mat-sys-*)`), so light and dark themes both work. Only the type colours and the highlight colours are fixed hex values.
+- Brand (company website, League Spartan font): use the `--brand-blue`, `--brand-coral` and `--brand-card-accent` tokens on `:root` in `styles.scss`. Primary actions are `mat-flat-button class="brand"` (`button.brand`). Gradient headings use `.brand-title`. Panels use the coral top border and 15px radius. Do not hard-code brand hex values in components.
 - Icons: Material filled icons via `<mat-icon>name</mat-icon>`. Use the icon's name exactly as Material lists it.
 - Backend calls go through Rust commands and `ApiService`, never through `HttpClient`, so requests avoid webview CORS limits.
 - Keep Angular's style budget in mind (component styles warn at 4 kB).

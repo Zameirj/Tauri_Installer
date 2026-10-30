@@ -79,9 +79,9 @@ main {
 
   &.active .circle,
   &.done .circle {
-    border-color: var(--mat-sys-primary);
-    background: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    border-color: transparent;
+    background: var(--brand-blue);
+    color: #fff;
   }
 
   .label {
@@ -97,14 +97,15 @@ main {
   background: var(--mat-sys-outline-variant);
 
   &.done {
-    background: var(--mat-sys-primary);
+    background: var(--brand-blue);
   }
 }
 
 .panel {
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 12px;
+  border-top: 5px solid var(--brand-card-accent);
+  border-radius: 15px;
   padding: 24px;
 }
 
@@ -216,9 +217,9 @@ form {
 
 .tag {
   padding: 2px 10px;
-  border: 1px solid var(--mat-sys-outline);
   border-radius: 999px;
-  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
   font: var(--mat-sys-label-small);
   white-space: nowrap;
 }
@@ -268,8 +269,6 @@ form {
   font-size: 18px;
   color: var(--mat-sys-primary);
   cursor: help;
-  border-radius: 50%;
-  outline-offset: 2px;
 }
 
 .hint {
@@ -290,23 +289,24 @@ form {
   padding: 10px 16px;
   text-align: center;
   font: var(--mat-sys-title-small);
+  font-weight: 700;
   background: var(--mat-sys-surface-container);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
 
   &.type-cwi {
-    color: #5ea0ff;
+    color: light-dark(#1d5bd6, #5ea0ff);
   }
 
   &.type-other {
-    color: #b39ddb;
+    color: light-dark(#6b46c1, #b39ddb);
   }
 
   &.type-tmpl {
-    color: #4fd1c5;
+    color: light-dark(#0f766e, #4fd1c5);
   }
 
   &.type-custom {
-    color: #ffb361;
+    color: light-dark(#b45309, #ffb361);
   }
 }
 

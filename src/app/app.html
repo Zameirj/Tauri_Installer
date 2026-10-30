@@ -1,6 +1,6 @@
 <header class="bar">
   <mat-icon>download</mat-icon>
-  <h1>Caseware Installer</h1>
+  <h1 class="brand-title">Caseware Installer</h1>
   <span class="sub">v{{ appVersion() }}</span>
 </header>
 
@@ -35,7 +35,7 @@
             {{ updateError() }}
           </p>
         }
-        <button mat-flat-button type="button" (click)="startUpdate()">
+        <button mat-flat-button class="brand" type="button" (click)="startUpdate()">
           <mat-icon>download</mat-icon>
           {{ updateError() ? 'Try again' : 'Update now' }}
         </button>
@@ -64,7 +64,7 @@
         @if (loading()) {
           <mat-progress-spinner mode="indeterminate" diameter="24" />
         }
-        <button mat-stroked-button type="submit" form="details-form" [disabled]="loading() || form.invalid">
+        <button mat-flat-button class="brand" type="submit" form="details-form" [disabled]="loading() || form.invalid">
           Next
           <mat-icon>arrow_forward</mat-icon>
         </button>
@@ -101,7 +101,7 @@
         }
         <button mat-button type="button" (click)="selectAll()">Select all</button>
         <button mat-button type="button" (click)="selectNone()">Select none</button>
-        <button mat-stroked-button type="button" [disabled]="selectedCount() === 0" (click)="download()">
+        <button mat-flat-button class="brand" type="button" [disabled]="selectedCount() === 0" (click)="download()">
           <mat-icon>download</mat-icon>
           Download ({{ selectedCount() }})
         </button>
@@ -154,6 +154,11 @@
             </p>
           }
         </form>
+      </section>
+
+      <section class="qr">
+        <img src="caseware-mobile-qr.svg" alt="QR code for the Caseware Africa Mobile app" width="160" height="160" />
+        <p>Scan the code for future product updates!</p>
       </section>
     } @else {
       <section class="panel list">

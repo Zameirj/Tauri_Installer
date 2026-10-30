@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Caseware Installer",
   "mainBinaryName": "CasewareInstaller",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "identifier": "com.adaptit.setupinstaller",
   "build": {
     "frontendDist": "../dist/setup-installer/browser",
@@ -15,7 +15,7 @@
       {
         "title": "Caseware Installer",
         "width": 1125,
-        "height": 724,
+        "height": 800,
         "resizable": true,
         "fullscreen": false,
         "minWidth": 900,
