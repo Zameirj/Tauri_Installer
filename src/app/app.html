@@ -83,6 +83,7 @@
               placeholder="xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx"
               autocomplete="off"
               spellcheck="false"
+              (input)="trimDownloadCode()"
             />
             @if (form.controls.downloadCode.hasError('required')) {
               <mat-error>Enter your download code</mat-error>

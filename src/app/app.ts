@@ -172,6 +172,12 @@ export class App {
       .catch(() => this.appVersion.set(''));
   }
 
+  /** Removes leading and trailing spaces from the download code as it is typed or pasted. */
+  trimDownloadCode(): void {
+    const control = this.form.controls.downloadCode;
+    control.setValue(control.value.trim());
+  }
+
   async next(): Promise<void> {
     this.error.set(null);
     if (this.form.invalid) {

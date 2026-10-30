@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "Caseware Installer",
-        "width": 1377,
-        "height": 835,
+        "width": 1125,
+        "height": 724,
         "resizable": true,
         "fullscreen": false,
         "minWidth": 900,
