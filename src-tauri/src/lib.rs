@@ -1,3 +1,5 @@
+mod applog;
+mod products;
 mod update;
 
 use serde::{Deserialize, Serialize};
@@ -24,6 +26,19 @@ pub struct OrgProduct {
     pub description: Option<String>,
     #[serde(default)]
     pub licences: Vec<Licence>,
+    #[serde(default)]
+    pub versions: Vec<ProductVersion>,
+}
+
+/// One released version of a product. `size` (bytes, as text) is checked after the download.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductVersion {
+    /// Matches the product's `version`, e.g. "2026.00.003".
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub size: Option<String>,
 }
 
 /// Only the licence tag is needed; the rest of the licence object is ignored.
@@ -43,6 +58,15 @@ fn is_safe_download_code(code: &str) -> bool {
 
 #[tauri::command]
 async fn get_org_products(download_code: String) -> Result<Vec<OrgProduct>, String> {
+    let result = fetch_org_products(&download_code).await;
+    match &result {
+        Ok(products) => applog::write(&format!("Loaded {} product(s) for the download code", products.len())),
+        Err(e) => applog::write(&format!("Product list failed: {e}")),
+    }
+    result
+}
+
+async fn fetch_org_products(download_code: &str) -> Result<Vec<OrgProduct>, String> {
     let code = download_code.trim();
     if !is_safe_download_code(code) {
         return Err("The download code contains characters that are not allowed.".into());
@@ -76,9 +100,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_org_products,
             update::check_for_update,
-            update::install_update
+            update::install_update,
+            products::download_products
         ])
-        .setup(|_app| {
+        .setup(|app| {
+            applog::write(&format!("Caseware Installer {} started", app.package_info().version));
             update::cleanup_old();
             Ok(())
         })

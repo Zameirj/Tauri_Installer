@@ -20,7 +20,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ApiService, OrgProduct, UpdateInfo, UpdateProgress } from './api.service';
+import {
+  ApiService,
+  DownloadItem,
+  DownloadProgress,
+  OrgProduct,
+  UpdateInfo,
+  UpdateProgress,
+} from './api.service';
 import { compareVersions, UPDATE_CHECK_URL, UPDATE_FILE_KEY, UPDATE_SIGNED_URL_ENDPOINT } from './update-config';
 
 const EULA_URL =
@@ -142,6 +149,23 @@ export class App {
   readonly products = signal<OrgProduct[]>([]);
   readonly selected = signal<ReadonlySet<string>>(new Set());
   readonly selectedCount = computed(() => this.selected().size);
+
+  /** Download of the selected products, one file at a time. */
+  readonly downloading = signal(false);
+  readonly downloadProgress = signal<DownloadProgress | null>(null);
+  readonly downloadError = signal('');
+  readonly downloadPct = computed(() => {
+    const p = this.downloadProgress();
+    return p?.total ? Math.round((p.downloaded * 100) / p.total) : null;
+  });
+  readonly downloadStatus = computed(() => {
+    const p = this.downloadProgress();
+    if (!p) return 'Starting...';
+    const name = this.products().find((x) => x.productId === p.productId)?.name ?? '';
+    const mb = (n: number) => (n / 1048576).toFixed(1);
+    const size = p.total ? ` of ${mb(p.total)} MB` : '';
+    return `${p.index + 1} of ${p.count}: ${name} (${mb(p.downloaded)}${size})`;
+  });
 
   /** Text typed in the product search. Each word must fuzzy-match the product name (any order). */
   readonly query = signal('');
@@ -341,8 +365,32 @@ export class App {
     this.selected.set(new Set());
   }
 
-  download(): void {
-    // Placeholder: the download step is not defined yet.
-    this.snackBar.open(`${this.selectedCount()} product(s) selected`, 'OK', { duration: 4000 });
+  /** Downloads each selected product in order and reports the folder the files were saved to. */
+  async download(): Promise<void> {
+    if (this.downloading()) return;
+    const items: DownloadItem[] = this.products()
+      .filter((p) => this.selected().has(p.productId))
+      .map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        version: p.version,
+        size: Number(p.versions.find((v) => v.description === p.version)?.size) || null,
+      }));
+    if (items.length === 0) return;
+
+    this.downloading.set(true);
+    this.downloadError.set('');
+    this.downloadProgress.set(null);
+    const unlisten = await this.api.onDownloadProgress((p) => this.downloadProgress.set(p));
+    try {
+      const saved = await this.api.downloadProducts(items);
+      const folder = saved[0]?.replace(/[\\/][^\\/]*$/, '') ?? '';
+      this.snackBar.open(`Saved ${saved.length} file(s) to ${folder}`, 'OK', { duration: 6000 });
+    } catch (e) {
+      this.downloadError.set(String(e));
+    } finally {
+      unlisten();
+      this.downloading.set(false);
+    }
   }
 }

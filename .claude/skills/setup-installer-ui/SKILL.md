@@ -78,7 +78,7 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 - Selection is by `productId` in a `Set`, replaced rather than mutated so signals update.
 - **Select all** and **Select none** act on all products, not only visible or matching ones.
-- **Download (n)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
+- **Download (n)** is disabled at 0 and always shows the number selected. It downloads the selected products one at a time through `download_products` (Rust, `products.rs`). Each file's storage key is `products/{name}/versions/{version}/{productId}.exe`, and it is saved to Downloads under `Caseware Installer`. A progress bar and status line sit under the toolbar while it runs. The button is disabled during a download.
 
 ## Messages and feedback
 

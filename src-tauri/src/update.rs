@@ -11,6 +11,8 @@ use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::applog;
+
 /// Latest release as reported by the update endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +52,12 @@ pub async fn check_for_update(app: AppHandle, url: String) -> Result<UpdateInfo,
         .product_name
         .clone()
         .unwrap_or_else(|| app.package_info().name.clone());
-    fetch_latest(&url, &product).await
+    let result = fetch_latest(&url, &product).await;
+    match &result {
+        Ok(info) => applog::write(&format!("Update check: latest release is {}", info.version)),
+        Err(e) => applog::write(&format!("Update check failed: {e}")),
+    }
+    result
 }
 
 async fn fetch_latest(url: &str, product: &str) -> Result<UpdateInfo, String> {
@@ -92,7 +99,7 @@ pub struct InstallOutcome {
 }
 
 /// Asks the storage API for a temporary signed download link for `key`.
-async fn signed_url(endpoint: &str, key: &str) -> Result<String, String> {
+pub(crate) async fn signed_url(endpoint: &str, key: &str) -> Result<String, String> {
     if !endpoint.starts_with("https://") && !endpoint.starts_with("http://") {
         return Err(format!("Download endpoint must be http(s): {endpoint}"));
     }
@@ -124,11 +131,13 @@ async fn signed_url(endpoint: &str, key: &str) -> Result<String, String> {
     Ok(url.to_string())
 }
 
-/// Streams `url` into `dest`, then checks size, the ETag (when it is a plain MD5) and that the
-/// file is a Windows program. `dest` is removed by the caller on error.
-async fn download(
+/// Streams `url` into `dest`, then checks size, the MD5 (`expected_md5` when given, otherwise the
+/// ETag when it is a plain MD5) and that the file is a Windows program. `dest` is removed by the
+/// caller on error.
+pub(crate) async fn download(
     url: &str,
     dest: &Path,
+    expected_md5: Option<&str>,
     mut on_progress: impl FnMut(u64, Option<u64>),
 ) -> Result<(), String> {
     let mut resp = reqwest::Client::builder()
@@ -182,12 +191,16 @@ async fn download(
     if &magic != b"MZ" {
         return Err("The downloaded file is not a Windows program".into());
     }
-    if let Some(tag) = etag {
-        if tag.len() == 32 && tag.bytes().all(|b| b.is_ascii_hexdigit()) {
-            let actual = format!("{:x}", md5.finalize());
-            if actual != tag {
-                return Err("The downloaded file is corrupt (checksum mismatch)".into());
-            }
+    let plain_md5 = |s: &str| s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit());
+    let expected = expected_md5
+        .map(|m| m.trim().to_ascii_lowercase())
+        .or_else(|| etag.filter(|t| plain_md5(t)));
+    if let Some(expected) = expected {
+        let actual = format!("{:x}", md5.finalize());
+        if actual != expected {
+            return Err(format!(
+                "The downloaded file is corrupt (checksum mismatch: expected {expected}, got {actual})"
+            ));
         }
     }
     Ok(())
@@ -246,7 +259,16 @@ pub fn cleanup_old() {
 
 #[tauri::command]
 pub async fn install_update(app: AppHandle, endpoint: String, key: String) -> Result<InstallOutcome, String> {
-    install(&app, &endpoint, &key).await
+    applog::write(&format!("Update install started: {key}"));
+    let result = install(&app, &endpoint, &key).await;
+    match &result {
+        Ok(outcome) => match &outcome.saved_to {
+            Some(path) => applog::write(&format!("Update saved to {path} (could not replace this copy)")),
+            None => applog::write("Update installed, restarting"),
+        },
+        Err(e) => applog::write(&format!("Update install failed: {e}")),
+    }
+    result
 }
 
 async fn install(app: &AppHandle, endpoint: &str, key: &str) -> Result<InstallOutcome, String> {
@@ -266,7 +288,7 @@ async fn install(app: &AppHandle, endpoint: &str, key: &str) -> Result<InstallOu
     };
 
     let handle = app.clone();
-    let downloaded = download(&url, &dest, move |downloaded, total| {
+    let downloaded = download(&url, &dest, None, move |downloaded, total| {
         let _ = handle.emit("update-progress", Progress { downloaded, total });
     })
     .await;
@@ -366,7 +388,7 @@ mod tests {
     fn run_download(body: Vec<u8>, etag: String, name: &str) -> (Result<(), String>, PathBuf) {
         let dest = temp_dir(name).join("out.exe");
         let url = serve(body, etag);
-        let r = tauri::async_runtime::block_on(download(&url, &dest, |_, _| {}));
+        let r = tauri::async_runtime::block_on(download(&url, &dest, None, |_, _| {}));
         (r, dest)
     }
 

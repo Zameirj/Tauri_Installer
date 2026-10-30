@@ -101,11 +101,23 @@
         }
         <button mat-button type="button" (click)="selectAll()">Select all</button>
         <button mat-button type="button" (click)="selectNone()">Select none</button>
-        <button mat-flat-button class="brand" type="button" [disabled]="selectedCount() === 0" (click)="download()">
+        <button mat-flat-button class="brand" type="button" [disabled]="selectedCount() === 0 || downloading()" (click)="download()">
           <mat-icon>download</mat-icon>
           Download ({{ selectedCount() }})
         </button>
       </div>
+      @if (downloading()) {
+        <mat-progress-bar
+          [mode]="downloadPct() === null ? 'indeterminate' : 'determinate'"
+          [value]="downloadPct() ?? 0"
+        />
+        <p class="hint">{{ downloadStatus() }}</p>
+      } @else if (downloadError()) {
+        <p class="error" role="alert">
+          <mat-icon>error</mat-icon>
+          {{ downloadError() }}
+        </p>
+      }
     }
   </div>
 
