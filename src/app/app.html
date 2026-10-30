@@ -1,0 +1,167 @@
+<header class="bar">
+  <mat-icon>download</mat-icon>
+  <h1>Caseware Installer</h1>
+</header>
+
+<main>
+  <div class="top">
+    <nav class="steps" aria-label="Progress">
+      @for (step of steps; track $index; let i = $index) {
+        <div class="step" [class.active]="i === currentStep()" [class.done]="i < currentStep()">
+          <span class="circle">{{ i + 1 }}</span>
+          <span class="label">{{ step }}</span>
+        </div>
+        @if (i < steps.length - 1) {
+          <span class="step-line" [class.done]="i < currentStep()"></span>
+        }
+      }
+    </nav>
+
+    @if (screen() === 'details') {
+      <div class="toolbar">
+        <span class="spacer"></span>
+        @if (loading()) {
+          <mat-progress-spinner mode="indeterminate" diameter="24" />
+        }
+        <button mat-stroked-button type="submit" form="details-form" [disabled]="loading() || form.invalid">
+          Next
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    } @else {
+      <div class="toolbar">
+        <button mat-stroked-button type="button" (click)="back()">
+          <mat-icon>arrow_back</mat-icon>
+          Back
+        </button>
+        <span class="spacer"></span>
+        @if (searchOpen()) {
+          <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              #searchInput
+              matInput
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Search products"
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+              (keydown.escape)="closeSearch()"
+            />
+            <button matSuffix mat-icon-button type="button" aria-label="Close search" (click)="closeSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        } @else {
+          <button mat-icon-button type="button" aria-label="Search products" (click)="openSearch()">
+            <mat-icon>search</mat-icon>
+          </button>
+        }
+        <button mat-button type="button" (click)="selectAll()">Select all</button>
+        <button mat-button type="button" (click)="selectNone()">Select none</button>
+        <button mat-stroked-button type="button" [disabled]="selectedCount() === 0" (click)="download()">
+          <mat-icon>download</mat-icon>
+          Download ({{ selectedCount() }})
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="content">
+    @if (screen() === 'details') {
+      <section class="panel">
+        <h2>Enter your download details</h2>
+
+        <form id="details-form" [formGroup]="form" (ngSubmit)="next()" novalidate>
+          <mat-form-field appearance="outline">
+            <mat-label>Download code</mat-label>
+            <input
+              matInput
+              formControlName="downloadCode"
+              placeholder="xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            @if (form.controls.downloadCode.hasError('required')) {
+              <mat-error>Enter your download code</mat-error>
+            } @else if (form.controls.downloadCode.hasError('pattern')) {
+              <mat-error>Use the format xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" autocomplete="email" />
+            @if (form.controls.email.hasError('required')) {
+              <mat-error>Enter your email address</mat-error>
+            } @else if (form.controls.email.hasError('pattern')) {
+              <mat-error>Enter a valid email address</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-checkbox formControlName="acceptEula" class="eula">
+            I have read and accept the terms and conditions of the
+            <a href="https://webcontent.casewareafrica.com/CaseWare_Community/My%20Account%20Docs/CWA%20EULA.pdf" (click)="openEula($event)">EULA</a>
+          </mat-checkbox>
+
+          @if (error()) {
+            <p class="error" role="alert">
+              <mat-icon>error</mat-icon>
+              {{ error() }}
+            </p>
+          }
+        </form>
+      </section>
+    } @else {
+      <section class="panel list">
+        @if (products().length === 0) {
+          <p class="empty">No products were found for this download code.</p>
+        } @else {
+          @for (group of groups(); track group.type) {
+            <h3 class="group-title type-{{ group.type }}">{{ group.label }}</h3>
+            <ul>
+              @for (product of group.products; track product.productId) {
+                <li [class.match]="isMatch(product.productId)">
+                  <mat-checkbox [checked]="isSelected(product.productId)" (change)="toggle(product.productId)">
+                    <span class="row-text">
+                      <span class="name-line">
+                        <span class="name">
+                          @for (part of nameParts(product); track $index) {
+                            @if (part.hit) {
+                              <mark class="hit">{{ part.text }}</mark>
+                            } @else {
+                              <span>{{ part.text }}</span>
+                            }
+                          }
+                        </span>
+                        @if (product.notification) {
+                          <span class="chip new">{{ product.notification }}</span>
+                        }
+                      </span>
+                      <span class="version">{{ product.version }}</span>
+                    </span>
+                  </mat-checkbox>
+                  @if (product.type === 'tmpl') {
+                    <div class="tags">
+                      @for (tag of licenceTags(product); track tag) {
+                        <span class="tag">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+      </section>
+
+      <p class="footer">
+        {{ products().length }} products · {{ selectedCount() }} selected
+        @if (query().trim()) {
+          · {{ matchingIds().size }} matching
+        }
+      </p>
+    }
+  </div>
+</main>
