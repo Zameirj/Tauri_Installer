@@ -69,6 +69,20 @@
           <mat-icon>arrow_forward</mat-icon>
         </button>
       </div>
+    } @else if (screen() === 'install') {
+      <div class="toolbar">
+        <button mat-stroked-button type="button" (click)="back()">
+          <mat-icon>arrow_back</mat-icon>
+          Back
+        </button>
+        <span class="spacer"></span>
+        <button mat-button type="button" (click)="selectAll()">Select all</button>
+        <button mat-button type="button" (click)="selectNone()">Select none</button>
+        <button mat-flat-button class="brand" type="button" [disabled]="selectedCount() === 0" (click)="install()">
+          <mat-icon>install_desktop</mat-icon>
+          Install ({{ selectedCount() }})
+        </button>
+      </div>
     } @else {
       <div class="toolbar">
         <button mat-stroked-button type="button" (click)="back()">
@@ -182,7 +196,11 @@
             <ul>
               @for (product of group.products; track product.productId) {
                 <li [class.match]="isMatch(product.productId)">
-                  <mat-checkbox [checked]="isSelected(product.productId)" (change)="toggle(product.productId)">
+                  <mat-checkbox
+                    [checked]="isChecked(product.productId)"
+                    [disabled]="isLocked(product.productId)"
+                    (change)="toggle(product.productId)"
+                  >
                     <span class="row-text">
                       <span class="name-line">
                         <span class="name">
@@ -228,7 +246,7 @@
       </section>
 
       <p class="footer">
-        {{ products().length }} products · {{ selectedCount() }} selected
+        {{ listedProducts().length }} products · {{ selectedCount() }} selected
         @if (query().trim()) {
           · {{ matchingIds().size }} matching
         }

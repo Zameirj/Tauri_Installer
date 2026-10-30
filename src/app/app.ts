@@ -141,9 +141,9 @@ export class App {
     return p.total ? `${mb(p.downloaded)} of ${mb(p.total)} MB` : `${mb(p.downloaded)} MB`;
   });
 
-  readonly screen = signal<'details' | 'products'>('details');
+  readonly screen = signal<'details' | 'products' | 'install'>('details');
   readonly steps = STEPS;
-  readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : 1));
+  readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : this.screen() === 'products' ? 1 : 2));
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly products = signal<OrgProduct[]>([]);
@@ -158,7 +158,20 @@ export class App {
     const p = this.downloadProgress();
     return p?.total ? Math.round((p.downloaded * 100) / p.total) : null;
   });
+  readonly extracting = signal(false);
+
+  /** Products downloaded and waiting for install, from myapps.json. Their rows on the products screen are locked. */
+  readonly downloadedIds = signal<ReadonlySet<string>>(new Set());
+  /** The product selection is restored on Back from step 3. */
+  private savedSelection: ReadonlySet<string> = new Set();
+  /** Step 3 lists the products that are waiting for install. */
+  readonly listedProducts = computed(() =>
+    this.screen() === 'install'
+      ? this.products().filter((p) => this.downloadedIds().has(p.productId))
+      : this.products(),
+  );
   readonly downloadStatus = computed(() => {
+    if (this.extracting()) return 'Extracting the downloaded files...';
     const p = this.downloadProgress();
     if (!p) return 'Starting...';
     const name = this.products().find((x) => x.productId === p.productId)?.name ?? '';
@@ -196,7 +209,7 @@ export class App {
 
   /** Products grouped by type in PRODUCT_TYPE_ORDER, each group sorted by name. */
   readonly groups = computed<ProductGroup[]>(() => {
-    const products = this.products();
+    const products = this.listedProducts();
     const types = [
       ...PRODUCT_TYPE_ORDER,
       ...new Set(products.map((p) => p.type).filter((t) => !PRODUCT_TYPE_ORDER.includes(t))),
@@ -213,6 +226,8 @@ export class App {
   });
 
   constructor() {
+    // Products already downloaded in an earlier session stay locked and pending for install.
+    this.loadDownloaded().catch((e) => console.warn('Could not read myapps.json', e));
     getVersion()
       .then((version) => {
         this.appVersion.set(version);
@@ -287,7 +302,27 @@ export class App {
 
   back(): void {
     this.error.set(null);
-    this.screen.set('details');
+    if (this.screen() === 'install') {
+      this.selected.set(new Set([...this.savedSelection].filter((id) => !this.downloadedIds().has(id))));
+      this.screen.set('products');
+    } else {
+      this.screen.set('details');
+    }
+  }
+
+  /** Reads myapps.json: every product downloaded and waiting for install. */
+  async loadDownloaded(): Promise<void> {
+    const apps = await this.api.pendingApps();
+    this.downloadedIds.set(new Set(apps.map((a) => a.productId)));
+  }
+
+  /** Step 3 install action. The install logic is not defined yet. */
+  install(): void {
+    this.snackBar.open(
+      `${this.selectedCount()} product(s) selected. Install is not built yet.`,
+      'OK',
+      { duration: 4000 },
+    );
   }
 
   /** Friendly badge text for the API's product `type`; unknown values are shown as-is. */
@@ -347,7 +382,17 @@ export class App {
     return this.selected().has(productId);
   }
 
+  /** A downloaded product cannot be picked again on the products screen. */
+  isLocked(productId: string): boolean {
+    return this.screen() === 'products' && this.downloadedIds().has(productId);
+  }
+
+  isChecked(productId: string): boolean {
+    return this.isSelected(productId) || this.isLocked(productId);
+  }
+
   toggle(productId: string): void {
+    if (this.isLocked(productId)) return;
     const next = new Set(this.selected());
     if (next.has(productId)) {
       next.delete(productId);
@@ -357,8 +402,13 @@ export class App {
     this.selected.set(next);
   }
 
+  /** Selects every product that can still be downloaded (or every listed product on step 3). */
   selectAll(): void {
-    this.selected.set(new Set(this.products().map((p) => p.productId)));
+    const ids =
+      this.screen() === 'install'
+        ? this.downloadedIds()
+        : this.products().map((p) => p.productId).filter((id) => !this.downloadedIds().has(id));
+    this.selected.set(new Set(ids));
   }
 
   selectNone(): void {
@@ -368,13 +418,14 @@ export class App {
   /** Downloads each selected product in order and reports the folder the files were saved to. */
   async download(): Promise<void> {
     if (this.downloading()) return;
-    const items: DownloadItem[] = this.products()
+    // Same order as the list on screen: group by group, then by name.
+    const items: DownloadItem[] = this.groups()
+      .flatMap((group) => group.products)
       .filter((p) => this.selected().has(p.productId))
       .map((p) => ({
         productId: p.productId,
         name: p.name,
         version: p.version,
-        size: Number(p.versions.find((v) => v.description === p.version)?.size) || null,
       }));
     if (items.length === 0) return;
 
@@ -383,13 +434,27 @@ export class App {
     this.downloadProgress.set(null);
     const unlisten = await this.api.onDownloadProgress((p) => this.downloadProgress.set(p));
     try {
-      const saved = await this.api.downloadProducts(items);
-      const folder = saved[0]?.replace(/[\\/][^\\/]*$/, '') ?? '';
-      this.snackBar.open(`Saved ${saved.length} file(s) to ${folder}`, 'OK', { duration: 6000 });
+      const { folder, files } = await this.api.downloadProducts(items);
+      // Step 3 starts here: extract the archives into their product folders.
+      this.extracting.set(true);
+      this.downloadProgress.set(null);
+      const extracted = await this.api.extractProducts(items);
+      this.snackBar.open(
+        `Downloaded ${files.length} and extracted ${extracted.length} product(s) to ${folder}`,
+        'OK',
+        { duration: 6000 },
+      );
+      // Step 3: every product waiting for install (from myapps.json) is listed and selected.
+      this.savedSelection = this.selected();
+      await this.loadDownloaded();
+      this.selected.set(new Set(this.downloadedIds()));
+      this.closeSearch();
+      this.screen.set('install');
     } catch (e) {
       this.downloadError.set(String(e));
     } finally {
       unlisten();
+      this.extracting.set(false);
       this.downloading.set(false);
     }
   }

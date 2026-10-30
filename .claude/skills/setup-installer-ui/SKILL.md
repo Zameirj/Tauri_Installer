@@ -31,7 +31,7 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 - Three steps: 1 Registration, 2 My Software, 3 Install/Distribution. Their names are the `STEPS` constant in `app.ts`.
 - `currentStep` is derived from `screen()`. Completed steps and the current step are filled with the primary colour. Future steps are outlined.
-- Step 3 has no screen yet. Do not link to it until it exists.
+- Step 3 (Install/Distribution) is the `install` screen. It opens after a download and extraction finish, and lists only the downloaded products, using the same group rows as screen 2. Its toolbar is Back, Select all, Select none, and the Install (n) button. Install is a placeholder until the run logic is defined.
 
 ## Screen 1: Registration
 

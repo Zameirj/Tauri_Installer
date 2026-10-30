@@ -28,15 +28,12 @@ export interface OrgProduct {
 export interface OrgProductVersion {
   /** Matches OrgProduct.version, e.g. '2026.00.003'. */
   description: string;
-  /** File size in bytes, sent as text by the API. */
-  size: string | null;
 }
 
 export interface DownloadItem {
   productId: string;
   name: string;
   version: string;
-  size: number | null;
 }
 
 export interface DownloadProgress {
@@ -72,9 +69,19 @@ export class ApiService {
     return listen<UpdateProgress>('update-progress', (e) => handler(e.payload));
   }
 
-  /** Downloads the items one after another. Resolves with the saved file paths. */
-  downloadProducts(items: DownloadItem[]): Promise<string[]> {
-    return invoke<string[]>('download_products', { items });
+  /** Downloads the items one after another. Resolves with the Caseware Installer folder and the saved files. */
+  downloadProducts(items: DownloadItem[]): Promise<{ folder: string; files: string[] }> {
+    return invoke<{ folder: string; files: string[] }>('download_products', { items });
+  }
+
+  /** Products downloaded and waiting for install, read from myapps.json. */
+  pendingApps(): Promise<{ productId: string; version: string; name: string }[]> {
+    return invoke<{ productId: string; version: string; name: string }[]>('pending_apps');
+  }
+
+  /** Extracts each downloaded archive into its product folder and deletes the archive. Resolves with the folders. */
+  extractProducts(items: DownloadItem[]): Promise<string[]> {
+    return invoke<string[]>('extract_products', { items });
   }
 
   onDownloadProgress(handler: (p: DownloadProgress) => void): Promise<UnlistenFn> {

@@ -1,11 +1,14 @@
 //! Downloads the selected products one after another. Each file is fetched through a signed link
-//! from the storage API, saved to a "Caseware Installer" folder in Downloads, and checked against
-//! the MD5 the product API reports for that version.
+//! from the storage API and saved to a "Caseware Installer" folder in Downloads. Each archive is
+//! then extracted with the bundled 7-Zip tool.
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use serde::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::applog;
@@ -20,9 +23,6 @@ pub struct DownloadItem {
     pub product_id: String,
     pub name: String,
     pub version: String,
-    /// Size in bytes the product API reports for the selected version.
-    #[serde(default)]
-    pub size: Option<u64>,
 }
 
 #[derive(Serialize, Clone)]
@@ -40,24 +40,91 @@ pub fn storage_key(item: &DownloadItem) -> String {
     format!("products/{}/versions/{}/{}.exe", item.name, item.version, item.product_id)
 }
 
-/// Windows file names cannot hold these characters.
+/// Saved as the product id, which is already a safe file name.
 fn file_name(item: &DownloadItem) -> String {
-    let raw = format!("{} {}.exe", item.name, item.version);
-    raw.chars()
-        .map(|c| if "<>:\"/\\|?*".contains(c) { '_' } else { c })
-        .collect()
+    format!("{}.exe", item.product_id)
 }
 
-/// The file must be the size the product API reports for the version, when it reports one.
-fn check_size(dest: &Path, expected: Option<u64>) -> Result<(), String> {
-    let Some(expected) = expected else {
-        return Ok(());
-    };
-    let actual = fs::metadata(dest).map_err(|e| format!("Could not read the downloaded file: {e}"))?.len();
-    if actual != expected {
-        return Err(format!("The downloaded file is the wrong size (expected {expected} bytes, got {actual})"));
+/// One subfolder per product, named after the product. Windows folder names cannot hold these
+/// characters, so they are replaced.
+fn folder_name(item: &DownloadItem) -> String {
+    item.name
+        .chars()
+        .map(|c| if "<>:\"/\\|?*".contains(c) { '_' } else { c })
+        .collect::<String>()
+        .trim_end_matches(['.', ' '])
+        .to_string()
+}
+
+/// The archives are protected with the SHA-1 (hex) of the product id.
+fn sfx_password(product_id: &str) -> String {
+    format!("{:x}", Sha1::digest(product_id.as_bytes()))
+}
+
+/// Extracts `archive` into `dir` with the bundled 7-Zip tool. The archive is read, never run.
+fn extract_archive(tool: &Path, archive: &Path, dir: &Path, password: &str) -> Result<(), String> {
+    let mut command = Command::new(tool);
+    command
+        .arg("x")
+        .arg("-y")
+        .arg("-aoa")
+        .arg("-bd")
+        .arg(format!("-o{}", dir.display()))
+        .arg(format!("-p{password}"))
+        .arg(archive);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     }
-    Ok(())
+    let output = command.output().map_err(|e| format!("Could not start 7-Zip: {e}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!(
+            "The extraction failed (exit code {}): {}",
+            output.status.code().unwrap_or(-1),
+            stderr.trim()
+        ))
+    }
+}
+
+/// Extracts each downloaded archive into its product folder, then deletes the archive.
+/// Stops at the first failure and keeps that archive for inspection.
+#[tauri::command]
+pub async fn extract_products(app: AppHandle, items: Vec<DownloadItem>) -> Result<Vec<String>, String> {
+    let folder = target_folder(&app)?;
+    let tool = app
+        .path()
+        .resolve("resources/7za/7za.exe", BaseDirectory::Resource)
+        .map_err(|e| format!("The bundled 7-Zip tool was not found: {e}"))?;
+    let mut extracted = Vec::with_capacity(items.len());
+
+    for item in items {
+        let dir = folder.join(folder_name(&item));
+        let exe = dir.join(file_name(&item));
+        applog::write(&format!("Extract started: {}", exe.display()));
+
+        let password = sfx_password(&item.product_id);
+        let (run_tool, run_exe, run_dir) = (tool.clone(), exe.clone(), dir.clone());
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            extract_archive(&run_tool, &run_exe, &run_dir, &password)
+        })
+            .await
+            .map_err(|e| e.to_string())
+            .and_then(|r| r);
+        if let Err(e) = result {
+            applog::write(&format!("Extract failed: {} - {e}", item.name));
+            return Err(format!("{}: {e}", item.name));
+        }
+
+        fs::remove_file(&exe).map_err(|e| format!("{}: could not delete the archive: {e}", item.name))?;
+        applog::write(&format!("Extracted into {} and deleted the archive", dir.display()));
+        extracted.push(dir.display().to_string());
+    }
+    applog::write("Extract finished");
+    Ok(extracted)
 }
 
 fn target_folder(app: &AppHandle) -> Result<PathBuf, String> {
@@ -67,10 +134,60 @@ fn target_folder(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(folder)
 }
 
-/// Downloads every item in order. Stops at the first failure and reports which product failed.
-/// Returns the saved paths.
+/// One entry in myapps.json, which lists the downloaded products.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledApp {
+    pub product_id: String,
+    pub version: String,
+    pub name: String,
+}
+
+/// Adds the downloaded products to myapps.json in the Caseware Installer folder. An entry with the
+/// same product id is replaced, so the file keeps one entry per product.
+fn read_myapps(folder: &Path) -> Vec<InstalledApp> {
+    fs::read_to_string(folder.join("myapps.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+/// Products downloaded and waiting for install, from myapps.json.
 #[tauri::command]
-pub async fn download_products(app: AppHandle, items: Vec<DownloadItem>) -> Result<Vec<String>, String> {
+pub fn pending_apps(app: AppHandle) -> Result<Vec<InstalledApp>, String> {
+    let folder = target_folder(&app)?;
+    Ok(read_myapps(&folder))
+}
+
+fn write_myapps(folder: &Path, items: &[DownloadItem]) -> Result<(), String> {
+    let path = folder.join("myapps.json");
+    let mut apps = read_myapps(folder);
+    for item in items {
+        let entry = InstalledApp {
+            product_id: item.product_id.clone(),
+            version: item.version.clone(),
+            name: item.name.clone(),
+        };
+        match apps.iter_mut().find(|a| a.product_id == entry.product_id) {
+            Some(existing) => *existing = entry,
+            None => apps.push(entry),
+        }
+    }
+    let text = serde_json::to_string_pretty(&apps).map_err(|e| e.to_string())?;
+    fs::write(&path, text).map_err(|e| format!("Could not write {}: {e}", path.display()))
+}
+
+/// Where the downloads went: the Caseware Installer folder and each saved file.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadOutcome {
+    pub folder: String,
+    pub files: Vec<String>,
+}
+
+/// Downloads every item in order. Stops at the first failure and reports which product failed.
+#[tauri::command]
+pub async fn download_products(app: AppHandle, items: Vec<DownloadItem>) -> Result<DownloadOutcome, String> {
     let folder = target_folder(&app)?;
     let count = items.len();
     let mut saved = Vec::with_capacity(count);
@@ -84,7 +201,10 @@ pub async fn download_products(app: AppHandle, items: Vec<DownloadItem>) -> Resu
             format!("{}: {e}", item.name)
         })?;
 
-        let dest = folder.join(file_name(item));
+        let dir = folder.join(folder_name(item));
+        fs::create_dir_all(&dir)
+            .map_err(|e| format!("{}: could not create {}: {e}", item.name, dir.display()))?;
+        let dest = dir.join(file_name(item));
         let handle = app.clone();
         let product_id = item.product_id.clone();
         let result = download(&url, &dest, None, move |downloaded, total| {
@@ -95,7 +215,6 @@ pub async fn download_products(app: AppHandle, items: Vec<DownloadItem>) -> Resu
         })
         .await;
 
-        let result = result.and_then(|()| check_size(&dest, item.size));
         if let Err(e) = result {
             let _ = fs::remove_file(&dest);
             applog::write(&format!("Download failed: {} - {e}", item.name));
@@ -104,8 +223,11 @@ pub async fn download_products(app: AppHandle, items: Vec<DownloadItem>) -> Resu
         applog::write(&format!("Saved {}", dest.display()));
         saved.push(dest.display().to_string());
     }
+    if let Err(e) = write_myapps(&folder, &items) {
+        applog::write(&format!("Could not update myapps.json: {e}"));
+    }
     applog::write("Download finished");
-    Ok(saved)
+    Ok(DownloadOutcome { folder: folder.display().to_string(), files: saved })
 }
 
 #[cfg(test)]
@@ -117,7 +239,6 @@ mod tests {
             product_id: "abc-123".into(),
             name: name.into(),
             version: version.into(),
-            size: None,
         }
     }
 
@@ -130,11 +251,49 @@ mod tests {
     }
 
     #[test]
-    fn keeps_brackets_and_spaces_but_removes_windows_forbidden_characters() {
+    fn folder_is_named_after_the_product_without_forbidden_characters() {
+        assert_eq!(
+            folder_name(&item("SME (English) incl. XBRL", "1.0")),
+            "SME (English) incl. XBRL"
+        );
+        assert_eq!(folder_name(&item("A/B:C.", "1.0")), "A_B_C");
+    }
+
+    #[test]
+    fn myapps_keeps_one_entry_per_product_and_updates_it() {
+        let dir = std::env::temp_dir().join(format!("myapps-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+
+        let mut first = item("Caseware Connector", "2026.00.003");
+        write_myapps(&dir, std::slice::from_ref(&first)).unwrap();
+        let mut other = item("SME (English) incl. XBRL", "2026_1 [Probe]hb");
+        other.product_id = "def-456".into();
+        write_myapps(&dir, std::slice::from_ref(&other)).unwrap();
+        first.version = "2026.00.004".into();
+        write_myapps(&dir, std::slice::from_ref(&first)).unwrap();
+
+        let apps: Vec<InstalledApp> =
+            serde_json::from_str(&fs::read_to_string(dir.join("myapps.json")).unwrap()).unwrap();
+        assert_eq!(apps.len(), 2);
+        assert_eq!(apps[0].version, "2026.00.004");
+        assert_eq!(apps[0].product_id, "abc-123");
+        assert_eq!(apps[0].name, "Caseware Connector");
+    }
+
+    #[test]
+    fn password_is_the_sha1_hex_of_the_product_id() {
+        assert_eq!(
+            sfx_password("s2j9syz1-cxhpknjr-k24q1adx-o26uu300"),
+            "e0458f46eed76c5b6071d8f08c8b8e30854806cf"
+        );
+    }
+
+    #[test]
+    fn names_the_file_after_the_product_id() {
         assert_eq!(
             file_name(&item("SME (English) incl. XBRL", "2026_1 [Probe]hb")),
-            "SME (English) incl. XBRL 2026_1 [Probe]hb.exe"
+            "abc-123.exe"
         );
-        assert_eq!(file_name(&item("A/B:C", "1.0")), "A_B_C 1.0.exe");
     }
 }

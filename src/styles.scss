@@ -63,6 +63,18 @@ body {
   display: inline-block;
 }
 
+/* Snack bar uses the dark surface. Its OK button takes the message text colour, not the white
+   used by the other buttons. */
+.mat-mdc-snack-bar-container {
+  --mat-snack-bar-container-color: var(--mat-sys-surface-container-high);
+  --mat-snack-bar-supporting-text-color: var(--mat-sys-on-surface);
+  --mat-snack-bar-button-color: var(--mat-sys-on-surface);
+}
+
+.mat-mdc-snack-bar-container button.mat-mdc-button-base:not(:disabled) {
+  color: var(--mat-sys-on-surface) !important;
+}
+
 /* Button labels are white when enabled; disabled buttons keep Material's greyed-out text. */
 button.mat-mdc-button-base:not(:disabled) {
   color: #fff !important;

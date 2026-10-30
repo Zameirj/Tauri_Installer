@@ -30,15 +30,13 @@ pub struct OrgProduct {
     pub versions: Vec<ProductVersion>,
 }
 
-/// One released version of a product. `size` (bytes, as text) is checked after the download.
+/// One released version of a product.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductVersion {
     /// Matches the product's `version`, e.g. "2026.00.003".
     #[serde(default)]
     pub description: String,
-    #[serde(default)]
-    pub size: Option<String>,
 }
 
 /// Only the licence tag is needed; the rest of the licence object is ignored.
@@ -101,7 +99,9 @@ pub fn run() {
             get_org_products,
             update::check_for_update,
             update::install_update,
-            products::download_products
+            products::download_products,
+            products::extract_products,
+            products::pending_apps
         ])
         .setup(|app| {
             applog::write(&format!("Caseware Installer {} started", app.package_info().version));
