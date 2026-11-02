@@ -1,0 +1,9 @@
+/* Hybrid glass installer theme — use with Angular Material */
+:root { --installer-ink:#111b40; --installer-navy:#0e1736; --installer-violet:#7736ed; --installer-pink:#ec25b4; --installer-blue:#3865f5; --installer-surface:rgba(250,251,255,.84); --installer-border:rgba(158,165,230,.52); --installer-shadow:0 12px 36px rgba(31,33,100,.16); }
+.installer-shell { color:var(--installer-ink); background:linear-gradient(125deg,#111837 0%,#344879 37%,#c7d4f8 75%,#e9edff 100%); border:1px solid rgba(207,215,255,.6); border-radius:22px; overflow:hidden; }
+.installer-titlebar { background:rgba(11,18,46,.8); color:white; backdrop-filter:blur(22px); }
+.installer-glass { background:var(--installer-surface); border:1px solid var(--installer-border); box-shadow:var(--installer-shadow); backdrop-filter:blur(18px) saturate(145%); border-radius:18px; }
+.installer-row { background:rgba(250,251,255,.83); border:1px solid rgba(209,211,249,.8); border-radius:16px; box-shadow:0 4px 12px rgba(36,39,103,.1); }
+.installer-primary { color:#fff; background:linear-gradient(110deg,#f02cad,#8632d9 55%,#2339d9); border:1px solid #e8a5ff; border-radius:999px; box-shadow:0 0 20px rgba(196,47,240,.38); }
+.installer-pill { border-radius:999px; background:rgba(226,217,255,.8); border:1px solid rgba(168,139,249,.8); }
+.installer-wave { background-image:url('../backgrounds/neon-wave-overlay.svg'); background-size:100% 100%; }

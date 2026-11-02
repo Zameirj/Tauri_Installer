@@ -50,3 +50,6 @@ Thumbs.db
 # Tauri build output and generated schemas
 /src-tauri/target
 /src-tauri/gen
+
+# Design asset archives (the extracted folder is committed)
+/wire-frames/*.zip

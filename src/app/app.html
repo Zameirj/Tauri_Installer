@@ -1,7 +1,9 @@
 <header class="bar">
-  <mat-icon>download</mat-icon>
+  <span class="app-mark"><mat-icon>install_desktop</mat-icon></span>
   <h1>Caseware Installer</h1>
-  <span class="sub">v{{ appVersion() }}</span>
+  @if (appVersion()) {
+    <span class="sub">v{{ appVersion() }}</span>
+  }
 </header>
 
 <main>
@@ -18,61 +20,33 @@
       }
     </nav>
 
-    @if (screen() === 'details') {
-      <div class="toolbar">
-        <span class="spacer"></span>
-        @if (loading()) {
-          <mat-progress-spinner mode="indeterminate" diameter="24" />
-        }
-        <button mat-stroked-button type="submit" form="details-form" [disabled]="loading() || form.invalid">
-          Next
-          <mat-icon>arrow_forward</mat-icon>
-        </button>
-      </div>
-    } @else {
-      <div class="toolbar">
-        <button mat-stroked-button type="button" (click)="back()">
-          <mat-icon>arrow_back</mat-icon>
-          Back
-        </button>
-        <span class="spacer"></span>
-        @if (searchOpen()) {
-          <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-            <mat-icon matPrefix>search</mat-icon>
-            <input
-              #searchInput
-              matInput
-              type="search"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Search products"
-              [value]="query()"
-              (input)="query.set($any($event.target).value)"
-              (keydown.escape)="closeSearch()"
-            />
-            <button matSuffix mat-icon-button type="button" aria-label="Close search" (click)="closeSearch()">
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-form-field>
+    <section class="banner">
+      <picture class="logo">
+        <source srcset="/logos/caseware-dark.png" media="(prefers-color-scheme: dark)" />
+        <img src="/logos/caseware.png" alt="Caseware" />
+      </picture>
+      <div class="banner-text">
+        <h2>Caseware Africa, A Division of Adapt IT (Pty) Ltd</h2>
+        @if (screen() === 'details') {
+          <p>Enter your download code and email address to see the software available to you.</p>
         } @else {
-          <button mat-icon-button type="button" aria-label="Search products" (click)="openSearch()">
-            <mat-icon>search</mat-icon>
-          </button>
+          <p>
+            Select the software you would like to download. Below is a list of software available to
+            you as per your license statement.
+          </p>
         }
-        <button mat-button type="button" (click)="selectAll()">Select all</button>
-        <button mat-button type="button" (click)="selectNone()">Select none</button>
-        <button mat-stroked-button type="button" [disabled]="selectedCount() === 0" (click)="download()">
-          <mat-icon>download</mat-icon>
-          Download ({{ selectedCount() }})
-        </button>
       </div>
-    }
+      <picture class="logo">
+        <source srcset="/logos/adaptit-dark.png" media="(prefers-color-scheme: dark)" />
+        <img src="/logos/adaptit.png" alt="Adapt IT" />
+      </picture>
+    </section>
   </div>
 
-  <div class="content">
+  <section class="panel">
     @if (screen() === 'details') {
-      <section class="panel">
-        <h2>Enter your download details</h2>
+      <div class="content">
+        <h3 class="panel-title">Enter your download details</h3>
 
         <form id="details-form" [formGroup]="form" (ngSubmit)="next()" novalidate>
           <mat-form-field appearance="outline">
@@ -114,9 +88,39 @@
             </p>
           }
         </form>
-      </section>
+      </div>
     } @else {
-      <section class="panel list">
+      <div class="toolbar">
+        <label class="search">
+          <mat-icon>search</mat-icon>
+          <input
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Search software..."
+            aria-label="Search software"
+            [value]="query()"
+            (input)="query.set($any($event.target).value)"
+            (keydown.escape)="clearSearch()"
+          />
+          @if (query()) {
+            <button mat-icon-button type="button" aria-label="Clear search" (click)="clearSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </label>
+        <span class="spacer"></span>
+        <button mat-stroked-button class="pill accent" type="button" (click)="selectAll()">
+          <mat-icon>check</mat-icon>
+          Select all
+        </button>
+        <button mat-stroked-button class="pill" type="button" (click)="selectNone()">
+          <mat-icon>remove_circle_outline</mat-icon>
+          Select none
+        </button>
+      </div>
+
+      <div class="content list">
         @if (products().length === 0) {
           <p class="empty">No products were found for this download code.</p>
         } @else {
@@ -124,24 +128,29 @@
             <h3 class="group-title type-{{ group.type }}">{{ group.label }}</h3>
             <ul>
               @for (product of group.products; track product.productId) {
-                <li [class.match]="isMatch(product.productId)">
+                <li [class.match]="isMatch(product.productId)" [class.selected]="isSelected(product.productId)">
                   <mat-checkbox [checked]="isSelected(product.productId)" (change)="toggle(product.productId)">
-                    <span class="row-text">
-                      <span class="name-line">
-                        <span class="name">
-                          @for (part of nameParts(product); track $index) {
-                            @if (part.hit) {
-                              <mark class="hit">{{ part.text }}</mark>
-                            } @else {
-                              <span>{{ part.text }}</span>
+                    <span class="row-body">
+                      <span class="tile tile-{{ tileColour(product) }}">
+                        <mat-icon>{{ productIcon(product) }}</mat-icon>
+                      </span>
+                      <span class="row-text">
+                        <span class="name-line">
+                          <span class="name">
+                            @for (part of nameParts(product); track $index) {
+                              @if (part.hit) {
+                                <mark class="hit">{{ part.text }}</mark>
+                              } @else {
+                                <span>{{ part.text }}</span>
+                              }
                             }
+                          </span>
+                          @if (product.notification) {
+                            <span class="chip new">{{ product.notification }}</span>
                           }
                         </span>
-                        @if (product.notification) {
-                          <span class="chip new">{{ product.notification }}</span>
-                        }
+                        <span class="version">{{ product.version }}</span>
                       </span>
-                      <span class="version">{{ product.version }}</span>
                     </span>
                   </mat-checkbox>
                   @if (product.type === 'tmpl') {
@@ -156,14 +165,35 @@
             </ul>
           }
         }
-      </section>
+      </div>
+    }
+  </section>
 
-      <p class="footer">
+  <footer class="actions">
+    @if (screen() === 'details') {
+      <span class="spacer"></span>
+      @if (loading()) {
+        <mat-progress-spinner mode="indeterminate" diameter="24" />
+      }
+      <button mat-flat-button class="cta" type="submit" form="details-form" [disabled]="loading() || form.invalid">
+        Next
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </button>
+    } @else {
+      <button mat-stroked-button class="pill back" type="button" (click)="back()">
+        <mat-icon>arrow_back</mat-icon>
+        Back
+      </button>
+      <p class="summary">
         {{ products().length }} products · {{ selectedCount() }} selected
         @if (query().trim()) {
           · {{ matchingIds().size }} matching
         }
       </p>
+      <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="download()">
+        Download ({{ selectedCount() }} selected)
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </button>
     }
-  </div>
+  </footer>
 </main>

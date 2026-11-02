@@ -10,26 +10,30 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 ## Stack and conventions
 
 - Angular 22 standalone components, signals (`signal`, `computed`), reactive forms, and `@if` / `@for` control flow. No NgModules.
-- Angular Material 22 with the azure palette. Use Material components (`mat-form-field`, `mat-stroked-button`, `mat-checkbox`, `mat-icon`, `mat-progress-spinner`) before writing custom controls.
-- Colours and type come from Material tokens (`var(--mat-sys-*)`), so light and dark themes both work. Only the type colours and the highlight colours are fixed hex values.
+- Angular Material 22 with the magenta palette (violet tertiary). Use Material components (`mat-form-field`, `mat-stroked-button`, `mat-checkbox`, `mat-icon`, `mat-progress-spinner`) before writing custom controls.
+- The look follows `wire-frames/dark-Modern Caseware Software Setup Installer.png` (dark) and `wire-frames/Modern Caseware Software Setup Installer.png` (light): glass panels, pink-to-blue brand gradient, pill buttons.
+- Brand colours come from `wire-frames/Installer_Design_Assets/styles/palette.json` (pink `#ec25b4`, violet `#7736ed`, blue `#3865f5`). Background art is `public/bg-waves.svg` and `public/banner-skyline.svg`. Banner logos are `public/logos/*.png`; the `-dark` variants (white text) load via `<picture>` in dark mode.
+- App styles live in `src/app/app.scss`, loaded globally from `styles.scss` and scoped under `app-root` (they override Material controls and exceed the 4 kB component budget). The component has no `styleUrl`.
+- Theme colours are custom properties on `app-root` using `light-dark()`, so both themes work. Type from Material tokens (`var(--mat-sys-*)`). Restyle Material controls with `mat.button-overrides` / `mat.form-field-overrides`, not by targeting internal classes.
 - Icons: Material filled icons via `<mat-icon>name</mat-icon>`. Use the icon's name exactly as Material lists it.
 - Backend calls go through Rust commands and `ApiService`, never through `HttpClient`, so requests avoid webview CORS limits.
 - Keep Angular's style budget in mind (component styles warn at 4 kB).
 
 ## Layout
 
-- `:host` is a 100vh flex column: the header (`.bar`), then `main`.
-- `main` holds two regions: `.top` (steps and toolbar, never scrolls) and `.content` (the panel or product list, scrolls).
-- Put every screen's action buttons in `.top .toolbar`. Do not place them inside the content area.
-- The screen 1 **Next** button is the only button on that toolbar, on the right. Its spinner sits beside it, not inside it.
-- Screen 2 toolbar order: Back (left), spacer, search icon or search field, Select all, Select none, Download (n) (right).
-- Content width is 900px max, centred, with 24px side padding. Do not widen it.
+- `app-root` is a 100vh flex column: the header (`.bar`), then `main`.
+- `main` holds `.top` (steps and the brand `.banner`, never scrolls), `.panel` (glass card; only its `.content` scrolls) and `footer.actions` (never scrolls).
+- Navigation buttons live in `footer.actions`: Back as an outlined `.pill` on the left, the primary action as a gradient `mat-flat-button.cta` on the right. Never put them in the scrolling content.
+- Screen 1 footer: only **Next** on the right, its spinner beside it, not inside it.
+- Screen 2 footer: Back (left), the product/selected/matching summary (centre), Download (n selected) (right).
+- Screen 2 `.toolbar` sits at the top of the panel: pill search field (left), spacer, Select all (`.pill.accent`), Select none (`.pill`).
+- Content width is 1200px max, centred, with 24px side padding.
 - The minimum window size is 900 × 640. Nothing should need horizontal scrolling at that size.
 
 ## Steps header
 
 - Three steps: 1 Registration, 2 My Software, 3 Install/Distribution. Their names are the `STEPS` constant in `app.ts`.
-- `currentStep` is derived from `screen()`. Completed steps and the current step are filled with the primary colour. Future steps are outlined.
+- Circles with the label underneath. `currentStep` is derived from `screen()`. Completed and current steps are filled with the pink-violet gradient (the current one glows); future steps are outlined. Lines between completed steps use the gradient.
 - Step 3 has no screen yet. Do not link to it until it exists.
 
 ## Screen 1: Registration
@@ -46,17 +50,18 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 ### Grouping
 
 - Groups appear in this fixed order: `cwi`, `other`, `tmpl`, `custom`. Unknown types follow, in the order they first appear.
-- Each group heading is centred (`.group-title`). Its colour depends on the type:
-  - `cwi` blue `#5ea0ff`
-  - `other` lilac `#b39ddb`
-  - `tmpl` teal `#4fd1c5`
+- Each group heading (`.group-title`) is left-aligned with a coloured bar before it. The bar colour depends on the type:
+  - `cwi` pink `#ff2d87`
+  - `other` blue `#5ea0ff`
+  - `tmpl` purple `#a855f7`
   - `custom` amber `#ffb361`
 - Products inside a group are sorted by name with `localeCompare`.
 - Type labels come from `PRODUCT_TYPE_LABELS`. Add new types there and to `PRODUCT_TYPE_ORDER` when the API adds them.
 
 ### Rows
 
-- Each row is one `li` with a `mat-checkbox` (flex 1) and, for `tmpl` only, licence tags on the right.
+- Each row is one rounded card `li` with a `mat-checkbox` (flex 1) and, for `tmpl` only, licence tags on the right. Selected rows get a pink border (`.selected`).
+- Inside the checkbox label: a gradient icon tile (`.tile-0` to `.tile-5`, chosen by `tileColour` from the product id) holding `productIcon` (keyword in `PRODUCT_ICONS`, else `PRODUCT_TYPE_ICONS`), then the text.
 - The name is on the first line with the optional red "New!" chip (`.chip.new`). The version is on the second line in `body-small`.
 - Licence tags (`.tag`) are outlined pills. They wrap and take at most 60% of the row, so the name never gets squashed.
 - Tag text has double spaces collapsed (`licenceTags`).
@@ -64,20 +69,20 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 ### Search
 
-- A search icon sits in the toolbar. Clicking it opens a 260px `mat-form-field` and focuses the input (`afterNextRender`).
-- Escape or the × button closes it and clears the query. A closed search leaves no highlights.
+- The search is an always-visible pill input (`.search`, 420px max) at the left of the panel toolbar.
+- Escape or the × button (shown only when there is text) clears the query. An empty query leaves no highlights.
 - Matching uses `fuzzyPositions`: every typed word must appear in the product **name** as a subsequence, in any order. Words are split on whitespace and lower-cased.
 - Only the name is searched. Do not add version, type or tags without asking.
-- A matching row gets the `.match` class: blue background `#1f4e87`.
+- A matching row gets the `.match` class: blue background `#1f4e87` with white text.
 - Matched letters inside the name are wrapped in `<mark class="hit">`: yellow `#ffd54f`, dark text, bold.
 - Rows that do not match stay visible. Search filters nothing.
-- The footer shows "N matching" only when the query is not empty.
+- The footer summary shows "N matching" only when the query is not empty.
 
 ### Selection and actions
 
 - Selection is by `productId` in a `Set`, replaced rather than mutated so signals update.
 - **Select all** and **Select none** act on all products, not only visible or matching ones.
-- **Download (n)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
+- **Download (n selected)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
 
 ## Messages and feedback
 

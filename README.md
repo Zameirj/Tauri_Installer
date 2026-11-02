@@ -26,7 +26,7 @@ Built as a single portable exe. Package manager: **pnpm**.
 ```
 src/
   main.ts                 bootstrap
-  styles.scss             Material theme (azure palette, light and dark) and icon font
+  styles.scss             Material theme (magenta palette, light and dark), background, icon font
   index.html
   app/
     app.ts                screen state, form, search, grouping, selection
@@ -60,22 +60,23 @@ The app has a three-step header. Only the first two steps have screens so far.
 - **Download code** is required and must match `xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx` (8 letters or digits per group, case-insensitive). Example format: `abcd1234-efgh5678-ijkl9012-mnop3456`.
 - **Email** is required and must match `name@domain.tld`. Angular's built-in `Validators.email` accepts `z@z`, so the app uses its own pattern.
 - **EULA checkbox** is required. The "EULA" link opens the PDF in the default browser through `@tauri-apps/plugin-opener`. The click does not toggle the checkbox.
-- **Next** stays disabled until the form is valid and the EULA box is ticked. It sits in the top toolbar, and a spinner appears beside it while the request runs.
+- **Next** stays disabled until the form is valid and the EULA box is ticked. It sits at the bottom right, and a spinner appears beside it while the request runs.
 - On success the app moves to screen 2. On failure the error message appears above the EULA checkbox.
 
 ### Screen 2: My Software
 
-1. **Products are grouped by `type`** in this order: `cwi` (Caseware Application), `other` (Other), `tmpl` (Template), `custom` (Custom). Unknown types follow at the end, using the raw value as the heading. Each group has a centred heading in its own colour.
+1. **Products are grouped by `type`** in this order: `cwi` (Caseware Application), `other` (Other), `tmpl` (Template), `custom` (Custom). Unknown types follow at the end, using the raw value as the heading. Each group has a left-aligned heading with a bar in its own colour. Each row is a card with an icon tile, picked from keywords in the product name.
 2. **Products within a group are sorted by name** (`localeCompare`).
 3. **Each row** has a checkbox, the product name (with a red "New!" badge when `notification` is set), and the version in a smaller font below the name.
 4. **Template rows only** show their licence tags on the right, one per `licences[].tagName`. Double spaces in tag names are collapsed. Tags wrap and take at most 60% of the row, so the name is never squashed.
-5. **Toolbar:** Back, a search icon (opens a 260px search field), Select all, Select none, and **Download (n)**. Download is disabled at 0 and shows the number selected. Its action is a placeholder snackbar until the download step is defined.
-6. **Search** matches only the product name. Each word typed must fuzzy-match the name in any order: the letters must appear in order but need not be adjacent. Matching rows get a blue background and the matched letters a yellow highlight. Rows that do not match stay visible. The footer shows "N matching" while a search is active. Escape or the × clears the search and collapses the field.
-7. **Footer** shows "N products · N selected", plus "· N matching" during a search.
+5. **Toolbar:** a search field, Select all and Select none sit at the top of the list panel. Back and **Download (n selected)** sit at the bottom. Download is disabled at 0 and shows the number selected. Its action is a placeholder snackbar until the download step is defined.
+6. **Search** matches only the product name. Each word typed must fuzzy-match the name in any order: the letters must appear in order but need not be adjacent. Matching rows get a blue background and the matched letters a yellow highlight. Rows that do not match stay visible. The footer shows "N matching" while a search is active. Escape or the × clears the search.
+7. **Footer** (between Back and Download) shows "N products · N selected", plus "· N matching" during a search.
 
 ### Layout
 
-- The app header, the steps, and the toolbar are fixed at the top. Only the `.content` area scrolls.
+- The app header, steps, brand banner, list toolbar and bottom action bar are fixed. Only the `.content` area scrolls.
+- The look follows the wireframes in `wire-frames/` (dark and light). App styles are in `src/app/app.scss`, loaded globally from `styles.scss`.
 - The window opens at 1377 × 835 (`tauri.conf.json`). Minimum size is 900 × 640.
 
 ## API

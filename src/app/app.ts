@@ -1,13 +1,4 @@
-import {
-  afterNextRender,
-  Component,
-  computed,
-  ElementRef,
-  inject,
-  Injector,
-  signal,
-  ViewChild,
-} from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -35,6 +26,29 @@ const STEPS = ['Registration', 'My Software', 'Install/Distribution'];
 
 /** Order in which the type groups appear on screen 2. Unknown types follow at the end. */
 const PRODUCT_TYPE_ORDER = ['cwi', 'other', 'tmpl', 'custom'];
+
+/** Icon for a product row, picked from the first keyword found in the product name. */
+const PRODUCT_ICONS: [keyword: string, icon: string][] = [
+  ['connector', 'link'],
+  ['time', 'schedule'],
+  ['add-on', 'extension'],
+  ['idea', 'lightbulb'],
+  ['smartsync', 'description'],
+  ['working papers', 'description'],
+  ['sme', 'groups'],
+  ['ifrs', 'bar_chart'],
+];
+
+/** Icon used when no keyword in PRODUCT_ICONS matches. */
+const PRODUCT_TYPE_ICONS: Record<string, string> = {
+  cwi: 'apps',
+  other: 'extension',
+  tmpl: 'article',
+  custom: 'build',
+};
+
+/** Number of icon tile colours defined in app.scss (.tile-0 to .tile-5). */
+const TILE_COLOURS = 6;
 
 interface ProductGroup {
   type: string;
@@ -85,14 +99,10 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
     MatProgressSpinnerModule,
   ],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
 })
 export class App {
   private readonly api = inject(ApiService);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly injector = inject(Injector);
-
-  @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
 
   readonly form = new FormGroup({
     downloadCode: new FormControl('', {
@@ -123,9 +133,6 @@ export class App {
 
   /** Text typed in the product search. Each word must fuzzy-match the product name (any order). */
   readonly query = signal('');
-
-  /** The search box is collapsed to an icon until it is opened. */
-  readonly searchOpen = signal(false);
 
   /** Lower-cased words typed in the search. */
   readonly searchTerms = computed(() =>
@@ -222,15 +229,24 @@ export class App {
       .filter((tag) => tag.length > 0);
   }
 
-  openSearch(): void {
-    this.searchOpen.set(true);
-    afterNextRender(() => this.searchInput?.nativeElement.focus(), { injector: this.injector });
+  /** Clears the search text, so no rows stay highlighted. */
+  clearSearch(): void {
+    this.query.set('');
   }
 
-  /** Closes the search box and clears the text, so no rows stay highlighted. */
-  closeSearch(): void {
-    this.query.set('');
-    this.searchOpen.set(false);
+  productIcon(product: OrgProduct): string {
+    const name = product.name.toLowerCase();
+    const match = PRODUCT_ICONS.find(([keyword]) => name.includes(keyword));
+    return match?.[1] ?? PRODUCT_TYPE_ICONS[product.type] ?? 'inventory_2';
+  }
+
+  /** Stable colour index for a product's icon tile, so each product keeps its colour. */
+  tileColour(product: OrgProduct): number {
+    let hash = 0;
+    for (const char of product.productId) {
+      hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    }
+    return hash % TILE_COLOURS;
   }
 
   isMatch(productId: string): boolean {

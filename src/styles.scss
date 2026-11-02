@@ -1,11 +1,15 @@
 @use '@angular/material' as mat;
+@use 'app/app';
 @import 'material-icons/iconfont/filled.css';
 
 html {
   color-scheme: light dark;
   @include mat.theme(
     (
-      color: mat.$azure-palette,
+      color: (
+        primary: mat.$magenta-palette,
+        tertiary: mat.$violet-palette,
+      ),
       typography: (
         plain-family: 'Segoe UI, system-ui, sans-serif',
         brand-family: 'Segoe UI, system-ui, sans-serif',
@@ -19,7 +23,17 @@ html,
 body {
   height: 100%;
   margin: 0;
-  background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-large);
+}
+
+/* Deep navy (dark) or lavender (light) with glowing pink and blue particle waves, as in the wireframes. */
+body {
+  background:
+    url('/bg-waves.svg') center bottom / cover no-repeat,
+    radial-gradient(50% 60% at 0% 100%, rgb(236 37 180 / 32%), transparent 70%),
+    radial-gradient(50% 60% at 100% 100%, rgb(56 101 245 / 32%), transparent 70%),
+    radial-gradient(60% 40% at 50% 0%, rgb(40 50 140 / 25%), transparent 70%),
+    light-dark(#f5f2fc, #050818);
+  background-attachment: fixed;
 }
