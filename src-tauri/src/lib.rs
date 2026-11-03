@@ -64,8 +64,20 @@ async fn get_org_products(download_code: String) -> Result<Vec<OrgProduct>, Stri
     result
 }
 
+/// Internal download code: only employees on the ADAPTIT domain may use it.
+const INTERNAL_DOWNLOAD_CODE: &str = "7uulkbzm-zvabbw0h-i0nl26xw-xutma8v0";
+const INTERNAL_DOMAIN: &str = "ADAPTIT";
+
+fn internal_code_allowed(code: &str, user_domain: &str) -> bool {
+    !code.eq_ignore_ascii_case(INTERNAL_DOWNLOAD_CODE) || user_domain.eq_ignore_ascii_case(INTERNAL_DOMAIN)
+}
+
 async fn fetch_org_products(download_code: &str) -> Result<Vec<OrgProduct>, String> {
     let code = download_code.trim();
+    let user_domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    if !internal_code_allowed(code, &user_domain) {
+        return Err("This download code is only available to ADAPTIT employees.".into());
+    }
     if !is_safe_download_code(code) {
         return Err("The download code contains characters that are not allowed.".into());
     }
@@ -105,9 +117,31 @@ pub fn run() {
         ])
         .setup(|app| {
             applog::write(&format!("Caseware Installer {} started", app.package_info().version));
+            let user_domain = std::env::var("USERDOMAIN").unwrap_or_else(|_| "unknown".into());
+            applog::write(&format!("User domain: {user_domain}"));
             update::cleanup_old();
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running Caseware Installer");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::internal_code_allowed;
+
+    const INTERNAL: &str = "7uulkbzm-zvabbw0h-i0nl26xw-xutma8v0";
+
+    #[test]
+    fn internal_code_needs_the_adaptit_domain() {
+        assert!(!internal_code_allowed(INTERNAL, "WORKGROUP"));
+        assert!(!internal_code_allowed(INTERNAL, ""));
+        assert!(internal_code_allowed(INTERNAL, "ADAPTIT"));
+        assert!(internal_code_allowed(INTERNAL, "adaptit"));
+    }
+
+    #[test]
+    fn other_codes_are_not_restricted() {
+        assert!(internal_code_allowed("n0edciaz-m68nflzq-fu6kv326-8eo0abd3", "WORKGROUP"));
+    }
 }
