@@ -7,22 +7,44 @@
  */
 
 app-root {
-  --brand-pink: #ec25b4;
-  --brand-violet: #7736ed;
-  --brand-blue: #3865f5;
-  --brand-gradient: linear-gradient(110deg, #f02cad, #8632d9 55%, #2339d9);
-  --glass: light-dark(rgb(255 255 255 / 72%), rgb(12 16 44 / 62%));
-  --glass-border: light-dark(rgb(119 54 237 / 16%), rgb(110 125 230 / 22%));
-  --row: light-dark(#fff, rgb(19 24 60 / 80%));
-  --row-hover: light-dark(#faf7ff, rgb(27 33 78 / 90%));
-  --row-border: light-dark(#ebe5f7, rgb(120 135 230 / 14%));
-  --muted: light-dark(#5d5872, #a3a9d6);
-  --line: light-dark(#d9d3ea, rgb(130 140 230 / 30%));
+  /*
+   * Purple scheme (wire-frames/Caseware Installer Software clean -purple.png): the header and
+   * steps sit on the slate header band in both themes, so they always use light text. The
+   * banner and list panel are always light lavender. The accent is the deep violet of Download.
+   */
+  --accent: #5226b5;
+  --accent-soft: #734ec8;
+  --cta-gradient: linear-gradient(160deg, #7144c7 0%, #4a24a5 100%);
+  --step-gradient: linear-gradient(135deg, #d42ce0, #8b3bc4);
+  --chrome-ink: #fff;
+  --chrome-muted: rgb(226 229 255 / 82%);
+  --chrome-glass: #3c4178;
+  --ink: light-dark(#14165a, #eef0ff);
+  --glass-shadow: light-dark(0 12px 36px rgb(31 33 100 / 16%), 0 12px 36px rgb(0 0 0 / 35%));
+  --row-border: light-dark(rgb(209 211 249 / 80%), rgb(150 160 240 / 18%));
+  --lavender: light-dark(#ddd5f4, rgb(119 54 237 / 28%));
+  --lavender-border: light-dark(#c1b2ef, rgb(168 139 249 / 50%));
+  --pill-border: #bbb6e0;
+  --muted: light-dark(#3e4373, #b4bbe6);
+  --line: light-dark(rgb(158 165 230 / 60%), rgb(150 160 240 / 30%));
 
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  color: var(--mat-sys-on-surface);
+  color: var(--ink);
+
+  // Slate header band (with its top-right sheen) behind the bar and steps, fading out above the banner.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 170px;
+    background: url('/backgrounds/02_header_gradient_background.svg') center top / 100% 100% no-repeat;
+    mask: linear-gradient(180deg, #000 55%, transparent);
+  }
 
   // Pill-shaped outlined buttons (Back, Select all, Select none).
   .pill {
@@ -30,49 +52,82 @@ app-root {
       (
         outlined-container-shape: 999px,
         outlined-container-height: 36px,
-        outlined-outline-color: light-dark(#c9bfe6, rgb(90 110 255 / 70%)),
-        outlined-label-text-color: var(--mat-sys-on-surface),
+        outlined-outline-color: var(--pill-border),
+        outlined-label-text-color: var(--ink),
         outlined-horizontal-padding: 16px,
         outlined-label-text-size: 14px,
       )
     );
 
-    background: var(--glass);
+    background: #fff;
 
-    mat-icon {
-      font-size: 18px;
+    .glyph {
       width: 18px;
       height: 18px;
     }
 
-    &.accent {
+    // Select all and Select none take the Download button's violet for their outline and icons.
+    &.accent,
+    &.select {
       @include mat.button-overrides(
         (
-          outlined-outline-color: rgb(236 37 180 / 60%),
+          outlined-outline-color: rgb(82 38 181 / 40%),
         )
       );
+    }
 
-      mat-icon {
-        color: var(--brand-pink);
+    &.accent {
+      background: #e3e2fb;
+    }
+
+    &.select .glyph {
+      color: var(--accent-soft);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--cta-gradient);
+      color: #fff;
+
+      .glyph {
+        width: 14px;
+        height: 14px;
       }
     }
   }
 
-  // Gradient call-to-action (Next, Download).
+  // Violet gradient buttons (Next, Download).
   .cta {
     @include mat.button-overrides(
       (
         filled-container-shape: 999px,
-        filled-container-height: 42px,
-        filled-horizontal-padding: 24px,
+        filled-container-height: 38px,
+        filled-horizontal-padding: 20px,
         filled-label-text-color: #fff,
-        filled-label-text-size: 15px,
+        filled-label-text-size: 14px,
       )
     );
 
+    .mdc-button__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .glyph {
+      width: 18px;
+      height: 18px;
+    }
+
+    // Deep violet pill with a soft violet shadow.
     &:not(:disabled) {
-      background-image: var(--brand-gradient);
-      box-shadow: 0 0 20px rgb(196 47 240 / 38%);
+      background-image: var(--cta-gradient);
+      box-shadow: 0 4px 16px rgb(74 36 165 / 35%);
     }
   }
 
@@ -84,11 +139,27 @@ app-root {
     );
   }
 
+  // Ticked boxes use the Download button's violet.
+  .panel mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        selected-icon-color: var(--accent),
+        selected-focus-icon-color: var(--accent),
+        selected-hover-icon-color: var(--accent),
+        selected-pressed-icon-color: var(--accent),
+        selected-focus-state-layer-color: var(--accent),
+        selected-hover-state-layer-color: var(--accent),
+        selected-pressed-state-layer-color: var(--accent),
+        selected-checkmark-color: #fff,
+      )
+    );
+  }
+
   mat-form-field {
     @include mat.form-field-overrides(
       (
         outlined-outline-color: var(--line),
-        outlined-hover-outline-color: rgb(119 54 237 / 60%),
+        outlined-hover-outline-color: rgb(82 38 181 / 60%),
       )
     );
   }
@@ -99,9 +170,9 @@ app-root {
   align-items: center;
   gap: 12px;
   padding: 10px 24px;
-  border-bottom: 1px solid var(--glass-border);
-  background: var(--glass);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgb(200 205 255 / 22%);
+  background: rgb(44 52 108 / 55%);
+  color: var(--chrome-ink);
 
   h1 {
     margin: 0;
@@ -110,26 +181,25 @@ app-root {
 
   .sub {
     margin-left: auto;
-    color: var(--muted);
+    color: var(--chrome-muted);
     font: var(--mat-sys-body-medium);
   }
 }
 
 .app-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--brand-gradient);
-  color: #fff;
+  width: 24px;
+  height: 24px;
+}
 
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-  }
+// Outline icons from public/icons, tinted with currentColor through a mask.
+.glyph {
+  display: inline-block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+  vertical-align: middle;
 }
 
 main {
@@ -139,10 +209,9 @@ main {
   gap: 12px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 1200px;
   min-height: 0;
-  margin: 0 auto;
-  padding: 16px 24px;
+  // Full width like the wireframe: about 36px gutters at 1535px, 24px at the minimum size.
+  padding: 16px clamp(24px, 2.4vw, 40px);
 }
 
 // Steps and banner stay put; only .content scrolls.
@@ -165,11 +234,11 @@ main {
   align-items: center;
   gap: 6px;
   width: 150px;
-  color: var(--muted);
+  color: var(--chrome-muted);
 
   &.active,
   &.done {
-    color: var(--mat-sys-on-surface);
+    color: var(--chrome-ink);
   }
 
   &.active .label {
@@ -181,29 +250,28 @@ main {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: 28px;
-    height: 28px;
-    border: 2px solid light-dark(#b9b2d1, #6f74c7);
+    width: 32px;
+    height: 32px;
+    border: 2px solid #fff;
     border-radius: 50%;
-    background: var(--glass);
+    background: var(--chrome-glass);
     font: var(--mat-sys-title-small);
   }
 
   &.active .circle,
   &.done .circle {
-    border-color: light-dark(#fff, rgb(255 255 255 / 85%));
-    background: linear-gradient(135deg, #ec25b4, #7736ed);
+    background: var(--step-gradient);
     color: #fff;
   }
 
   &.active .circle {
     box-shadow:
-      0 0 0 3px rgb(236 37 180 / 25%),
-      0 0 18px rgb(236 37 180 / 55%);
+      0 0 0 3px rgb(212 44 224 / 30%),
+      0 0 18px rgb(212 44 224 / 60%);
   }
 
   .label {
-    font: var(--mat-sys-body-small);
+    font: var(--mat-sys-body-medium);
     white-space: nowrap;
   }
 }
@@ -212,11 +280,11 @@ main {
   flex: 1;
   max-width: 180px;
   height: 2px;
-  margin-top: 14px;
-  background: var(--line);
+  margin-top: 16px;
+  background: rgb(226 228 255 / 80%);
 
   &.done {
-    background: linear-gradient(90deg, #ec25b4, #7736ed);
+    background: linear-gradient(90deg, #d42ce0, #8a4bf0);
   }
 }
 
@@ -224,17 +292,18 @@ main {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 20px;
   overflow: hidden;
-  min-height: 72px;
-  padding: 14px 28px;
-  border: 1px solid var(--glass-border);
+  min-height: 104px;
+  padding: 16px 36px;
+  border: 1px solid rgb(255 255 255 / 80%);
   border-radius: 16px;
-  background:
-    url('/banner-skyline.svg') right 140px bottom / auto 70% no-repeat,
-    radial-gradient(45% 120% at 85% 110%, rgb(119 54 237 / 45%), transparent 70%),
-    radial-gradient(30% 90% at 0% 0%, rgb(236 37 180 / 35%), transparent 70%),
-    var(--glass);
+  // Always light, like the panel, so the dark-text logos are used in both themes.
+  color-scheme: light;
+  color: var(--ink);
+  // Redrawn from the wireframe; it stretches to the banner's size like the wireframe's.
+  background: url('/backgrounds/banner.svg') center / 100% 100% no-repeat, #e4e5fc;
+  box-shadow: var(--glass-shadow);
 
   > * {
     position: relative;
@@ -242,40 +311,47 @@ main {
 
   h2 {
     margin: 0 0 2px;
+    color: #0d134e;
     font: var(--mat-sys-title-medium);
-    font-size: 18px;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 700;
   }
 
   p {
     margin: 0;
-    color: var(--muted);
-    font: var(--mat-sys-body-small);
+    color: #0d134e;
+    font: var(--mat-sys-body-large);
   }
 }
 
+// The divider between the Caseware logo and the heading.
 .banner-text {
   flex: 1;
   min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid #c5c6ea;
 }
 
 .logo {
-  display: flex;
   flex: none;
-
-  img {
-    height: 56px;
-  }
+  height: 64px;
 }
 
+// The centre panel is always the light frosted glass, in dark mode too: color-scheme
+// makes every light-dark() token and Material colour inside it resolve to the light value.
 .panel {
+  color-scheme: light;
+  color: var(--ink);
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid var(--glass-border);
+  border: 1px solid #fff;
   border-radius: 16px;
-  background: var(--glass);
-  backdrop-filter: blur(16px);
+  // Opaque lavender, so the dark-mode backdrop doesn't change it.
+  background: url('/backgrounds/04_software_panel_background.svg') center / 100% 100% no-repeat, #e6e9fb;
+  box-shadow: var(--glass-shadow);
 }
 
 .content {
@@ -283,6 +359,28 @@ main {
   min-height: 0;
   overflow-y: auto;
   padding: 24px;
+
+  // Scrollbar thumb is a lighter violet than the Download button. WebView2 is Chromium, so the
+  // -webkit pseudo-elements apply; scrollbar-color can't take a gradient (and would
+  // override these if set).
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin: 12px 0;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 45%);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(180deg, #9a75e6 0%, #7a55c6 100%);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #8a65d6 0%, #6a45b6 100%);
+  }
 }
 
 .panel-title {
@@ -308,7 +406,7 @@ form {
   margin: 8px 0 4px;
 
   a {
-    color: var(--brand-pink);
+    color: var(--accent);
   }
 }
 
@@ -323,7 +421,6 @@ form {
 
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 12px 16px 2px;
@@ -331,36 +428,110 @@ form {
   .spacer {
     flex: 1;
   }
+
+  // Buttons keep their size; the search field gives way on narrow windows.
+  > button {
+    flex: none;
+    white-space: nowrap;
+  }
 }
 
+// Search: a 36px circle holding the magnifier that grows into a pill field when opened.
+// Opening decelerates (emphasized easing) and the text fades in once the pill has room;
+// closing is quicker and accelerates away, the way a hand lets go.
 .search {
+  --search-ease-open: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --search-ease-close: cubic-bezier(0.3, 0, 0.8, 0.15);
+
   display: flex;
   align-items: center;
-  gap: 10px;
   box-sizing: border-box;
-  width: min(420px, 100%);
+  flex: 0 1 36px;
+  min-width: 36px;
   height: 36px;
-  padding: 0 2px 0 14px;
-  border: 1px solid var(--line);
+  overflow: hidden;
+  border: 1px solid var(--pill-border);
   border-radius: 999px;
-  background: var(--row);
+  background: #fff;
   color: var(--muted);
+  transition:
+    flex-basis 220ms var(--search-ease-close),
+    border-color 150ms ease;
 
+  &:hover,
   &:focus-within {
-    border-color: var(--brand-pink);
+    border-color: var(--accent);
+  }
+
+  &.open {
+    flex-basis: 380px;
+    transition:
+      flex-basis 420ms var(--search-ease-open),
+      border-color 150ms ease;
+
+    input {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity 240ms ease-out 120ms,
+        transform 360ms var(--search-ease-open) 80ms;
+    }
+
+    .search-icon {
+      cursor: default;
+    }
+  }
+
+  .search-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .glyph {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   input {
     flex: 1;
     min-width: 0;
+    padding: 0 4px 0 2px;
     border: 0;
     outline: 0;
     background: none;
-    color: var(--mat-sys-on-surface);
+    color: var(--ink);
     font: var(--mat-sys-body-medium);
+    opacity: 0;
+    transform: translateX(-8px);
+    transition:
+      opacity 100ms ease-in,
+      transform 160ms var(--search-ease-close);
 
     &::-webkit-search-cancel-button {
       display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &,
+    &.open,
+    input,
+    &.open input {
+      transition: none;
     }
   }
 }
@@ -382,19 +553,20 @@ form {
     align-items: center;
     gap: 12px;
     padding: 0 12px 0 4px;
-    border: 1px solid var(--row-border);
-    border-radius: 10px;
-    background: var(--row);
+    border: 1px solid #fff;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f8f8fe, #eaedfa);
+    box-shadow: 0 3px 10px rgb(60 50 140 / 16%);
     transition:
       background-color 120ms,
       border-color 120ms;
 
     &:hover {
-      background: var(--row-hover);
+      background: #fff;
     }
 
     &.selected {
-      border-color: rgb(236 37 180 / 45%);
+      border-color: rgb(82 38 181 / 35%);
     }
 
     &.match {
@@ -422,12 +594,13 @@ form {
   gap: 10px;
   margin: 12px 0 6px;
   font: var(--mat-sys-title-small);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 600;
 
   &::before {
     content: '';
     width: 4px;
-    height: 14px;
+    height: 18px;
     border-radius: 2px;
     background: currentColor;
   }
@@ -437,7 +610,7 @@ form {
   }
 
   &.type-other::before {
-    background: #5ea0ff;
+    background: #269cfc;
   }
 
   &.type-tmpl::before {
@@ -454,47 +627,6 @@ form {
   align-items: center;
   gap: 12px;
   margin-left: 4px;
-}
-
-.tile {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  color: #fff;
-
-  mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-  }
-
-  &.tile-0 {
-    background: linear-gradient(135deg, #ff4d7d, #e0115f);
-  }
-
-  &.tile-1 {
-    background: linear-gradient(135deg, #b44dff, #7736ed);
-  }
-
-  &.tile-2 {
-    background: linear-gradient(135deg, #3fa9ff, #1565e8);
-  }
-
-  &.tile-3 {
-    background: linear-gradient(135deg, #ff9a3c, #f05a22);
-  }
-
-  &.tile-4 {
-    background: linear-gradient(135deg, #6a5cff, #3d2fc4);
-  }
-
-  &.tile-5 {
-    background: linear-gradient(135deg, #ff6f61, #e8202a);
-  }
 }
 
 .row-text {
@@ -526,10 +658,13 @@ form {
 
 .chip {
   display: inline-block;
-  padding: 0 8px;
+  padding: 2px 10px;
   border-radius: 999px;
   color: #fff;
-  font: var(--mat-sys-label-small);
+  font: var(--mat-sys-label-medium);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
   white-space: nowrap;
 
   &.new {
@@ -553,10 +688,10 @@ form {
 
 .tag {
   padding: 3px 12px;
-  border: 1px solid light-dark(#ddd4f1, rgb(255 255 255 / 18%));
+  border: 1px solid var(--lavender-border);
   border-radius: 999px;
-  background: light-dark(#f6f2ff, rgb(255 255 255 / 6%));
-  font: var(--mat-sys-label-small);
+  background: var(--lavender);
+  font: var(--mat-sys-label-medium);
   white-space: nowrap;
 }
 
@@ -567,21 +702,11 @@ form {
   text-align: center;
 }
 
-.actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 12px;
-
-  .spacer,
-  .summary {
-    flex: 1;
-  }
-
-  .summary {
-    margin: 0;
-    text-align: center;
-    color: var(--muted);
-    font: var(--mat-sys-body-small);
-  }
+.summary {
+  margin: 0;
+  padding: 8px 16px 10px;
+  border-top: 1px solid var(--row-border);
+  color: var(--muted);
+  font: var(--mat-sys-body-small);
+  text-align: right;
 }

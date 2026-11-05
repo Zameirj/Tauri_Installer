@@ -13,6 +13,12 @@ export interface OrgProduct {
 
 export interface OrgLicence {
   tagName: string | null;
+  organisations: OrgOrganisation[];
+  bundles: { organisations: OrgOrganisation[] }[];
+}
+
+export interface OrgOrganisation {
+  name: string | null;
 }
 
 /** Calls the Rust side, which talks to the Caseware API (no CORS in the webview). */

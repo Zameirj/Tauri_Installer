@@ -10,24 +10,24 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 ## Stack and conventions
 
 - Angular 22 standalone components, signals (`signal`, `computed`), reactive forms, and `@if` / `@for` control flow. No NgModules.
-- Angular Material 22 with the magenta palette (violet tertiary). Use Material components (`mat-form-field`, `mat-stroked-button`, `mat-checkbox`, `mat-icon`, `mat-progress-spinner`) before writing custom controls.
-- The look follows `wire-frames/dark-Modern Caseware Software Setup Installer.png` (dark) and `wire-frames/Modern Caseware Software Setup Installer.png` (light): glass panels, pink-to-blue brand gradient, pill buttons.
-- Brand colours come from `wire-frames/Installer_Design_Assets/styles/palette.json` (pink `#ec25b4`, violet `#7736ed`, blue `#3865f5`). Background art is `public/bg-waves.svg` and `public/banner-skyline.svg`. Banner logos are `public/logos/*.png`; the `-dark` variants (white text) load via `<picture>` in dark mode.
+- Angular Material 22 with the violet palette (magenta tertiary). Use Material components (`mat-form-field`, `mat-stroked-button`, `mat-checkbox`, `mat-icon`, `mat-progress-spinner`) before writing custom controls.
+- The look follows `wire-frames/Caseware Installer Software clean -purple.png` in both themes. The header and steps always sit on the slate header band with light text (`--chrome-*` tokens). The `.banner` and the centre `.panel` (form, toolbar, list, rows) are always light lavender (`color-scheme: light` on both), so the dark-text logos are used in both themes. The backdrop is the same in both themes too.
+- The accent is the deep violet of the Download button (`--accent` `#5226b5`, `--cta-gradient`); steps use the magenta-violet `--step-gradient`. Background art is `public/backgrounds/*.svg`, copied from `wire-frames/caseware_installer_backgrounds` with `preserveAspectRatio="none"` so they stretch: `05` bottom waves on `body` over a vertical slate-to-lavender gradient sampled from the wireframe (`styles.scss`; `01` runs diagonally and doesn't match, so it isn't used), `02` header band on `app-root::before`, `04` on `.panel`. The banner uses `public/backgrounds/banner.svg`, redrawn from the wireframe because `03` doesn't match it; it stretches to the banner's size. Banner logos are `public/logos/caseware.png` and `adaptit-navy.png` (`adaptit.png` with the text recoloured navy, as in the wireframe).
 - App styles live in `src/app/app.scss`, loaded globally from `styles.scss` and scoped under `app-root` (they override Material controls and exceed the 4 kB component budget). The component has no `styleUrl`.
 - Theme colours are custom properties on `app-root` using `light-dark()`, so both themes work. Type from Material tokens (`var(--mat-sys-*)`). Restyle Material controls with `mat.button-overrides` / `mat.form-field-overrides`, not by targeting internal classes.
-- Icons: Material filled icons via `<mat-icon>name</mat-icon>`. Use the icon's name exactly as Material lists it.
+- Icons: outline SVGs in `public/icons` (from the design asset pack), drawn with `<span class="glyph" style="--icon: url(/icons/name.svg)">` so they take `currentColor`. Use Material `<mat-icon>` only where the pack has no icon (error, close).
 - Backend calls go through Rust commands and `ApiService`, never through `HttpClient`, so requests avoid webview CORS limits.
 - Keep Angular's style budget in mind (component styles warn at 4 kB).
 
 ## Layout
 
 - `app-root` is a 100vh flex column: the header (`.bar`), then `main`.
-- `main` holds `.top` (steps and the brand `.banner`, never scrolls), `.panel` (glass card; only its `.content` scrolls) and `footer.actions` (never scrolls).
-- Navigation buttons live in `footer.actions`: Back as an outlined `.pill` on the left, the primary action as a gradient `mat-flat-button.cta` on the right. Never put them in the scrolling content.
-- Screen 1 footer: only **Next** on the right, its spinner beside it, not inside it.
-- Screen 2 footer: Back (left), the product/selected/matching summary (centre), Download (n selected) (right).
-- Screen 2 `.toolbar` sits at the top of the panel: pill search field (left), spacer, Select all (`.pill.accent`), Select none (`.pill`).
-- Content width is 1200px max, centred, with 24px side padding.
+- `main` holds `.top` (steps and the brand `.banner`, never scrolls) and `.panel` (glass card). Inside the panel, `.toolbar` stays put and only `.content` scrolls.
+- Every screen's action buttons live in the panel `.toolbar` at the top, never in the scrolling content: Back as an outlined `.pill` on the left, the primary action as a gradient `mat-flat-button.cta` on the right.
+- Screen 1 toolbar: only **Next** on the right, its spinner beside it, not inside it.
+- Screen 2 toolbar order: Back (`.pill`), spacer, search (magnifier circle that grows leftwards into the field), Select all (`.pill.accent`) and Select none (`.pill.select`), outlined in the Download violet, then Download (n) as a violet `.cta` with a leading download icon.
+- Screen 2 shows the product/selected/matching `.summary` line at the foot of the panel.
+- Content runs the full window width like the wireframe, with `clamp(24px, 2.4vw, 40px)` side padding.
 - The minimum window size is 900 × 640. Nothing should need horizontal scrolling at that size.
 
 ## Steps header
@@ -47,12 +47,14 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 ## Screen 2: My Software
 
+- The banner heading shows `organisationName()` (first `licences[].organisations[].name` or `licences[].bundles[].organisations[].name`), falling back to "Caseware Africa, A Division of Adapt IT (Pty) Ltd" when none is found. Screen 1 always shows the fallback.
+
 ### Grouping
 
 - Groups appear in this fixed order: `cwi`, `other`, `tmpl`, `custom`. Unknown types follow, in the order they first appear.
 - Each group heading (`.group-title`) is left-aligned with a coloured bar before it. The bar colour depends on the type:
   - `cwi` pink `#ff2d87`
-  - `other` blue `#5ea0ff`
+  - `other` blue `#269cfc`
   - `tmpl` purple `#a855f7`
   - `custom` amber `#ffb361`
 - Products inside a group are sorted by name with `localeCompare`.
@@ -60,8 +62,8 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 ### Rows
 
-- Each row is one rounded card `li` with a `mat-checkbox` (flex 1) and, for `tmpl` only, licence tags on the right. Selected rows get a pink border (`.selected`).
-- Inside the checkbox label: a gradient icon tile (`.tile-0` to `.tile-5`, chosen by `tileColour` from the product id) holding `productIcon` (keyword in `PRODUCT_ICONS`, else `PRODUCT_TYPE_ICONS`), then the text.
+- Each row is one rounded card `li` with a `mat-checkbox` (flex 1) and, for `tmpl` only, licence tags on the right. Selected rows get a violet border (`.selected`).
+- Inside the checkbox label: only the text, no product icon. Do not add icons back without asking.
 - The name is on the first line with the optional red "New!" chip (`.chip.new`). The version is on the second line in `body-small`.
 - Licence tags (`.tag`) are outlined pills. They wrap and take at most 60% of the row, so the name never gets squashed.
 - Tag text has double spaces collapsed (`licenceTags`).
@@ -69,20 +71,20 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 ### Search
 
-- The search is an always-visible pill input (`.search`, 420px max) at the left of the panel toolbar.
-- Escape or the × button (shown only when there is text) clears the query. An empty query leaves no highlights.
+- The search is one `.search` element just before Select all: a 36px circle with the centred magnifier (`.search-icon`, a plain button so Material padding doesn't offset it) that grows into the pill field (`.open`, 380px) and focuses it. Opening uses emphasized-decelerate easing over 420ms with the text fading in slightly behind; closing is a quicker 220ms accelerate. Motion is off under `prefers-reduced-motion`. The field collapses back to the button when it loses focus while empty, or on Escape when empty; it stays open while there is text.
+- Escape (when there is text) or the × button (shown only when there is text) clears the query. An empty query leaves no highlights.
 - Matching uses `fuzzyPositions`: every typed word must appear in the product **name** as a subsequence, in any order. Words are split on whitespace and lower-cased.
 - Only the name is searched. Do not add version, type or tags without asking.
 - A matching row gets the `.match` class: blue background `#1f4e87` with white text.
 - Matched letters inside the name are wrapped in `<mark class="hit">`: yellow `#ffd54f`, dark text, bold.
 - Rows that do not match stay visible. Search filters nothing.
-- The footer summary shows "N matching" only when the query is not empty.
+- The summary line shows "N matching" only when the query is not empty.
 
 ### Selection and actions
 
 - Selection is by `productId` in a `Set`, replaced rather than mutated so signals update.
 - **Select all** and **Select none** act on all products, not only visible or matching ones.
-- **Download (n selected)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
+- **Download (n)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
 
 ## Messages and feedback
 

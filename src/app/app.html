@@ -1,5 +1,5 @@
 <header class="bar">
-  <span class="app-mark"><mat-icon>install_desktop</mat-icon></span>
+  <img class="app-mark" src="/logos/caseware-mark.svg" alt="" />
   <h1>Caseware Installer</h1>
   @if (appVersion()) {
     <span class="sub">v{{ appVersion() }}</span>
@@ -21,12 +21,14 @@
     </nav>
 
     <section class="banner">
-      <picture class="logo">
-        <source srcset="/logos/caseware-dark.png" media="(prefers-color-scheme: dark)" />
-        <img src="/logos/caseware.png" alt="Caseware" />
-      </picture>
+      <!-- The banner is light lavender in both themes, so the dark-text logos are always used. -->
+      <img class="logo" src="/logos/caseware.png" alt="Caseware" />
       <div class="banner-text">
-        <h2>Caseware Africa, A Division of Adapt IT (Pty) Ltd</h2>
+        @if (screen() === 'products' && organisationName()) {
+          <h2>{{ organisationName() }}</h2>
+        } @else {
+          <h2>Caseware Africa, A Division of Adapt IT (Pty) Ltd</h2>
+        }
         @if (screen() === 'details') {
           <p>Enter your download code and email address to see the software available to you.</p>
         } @else {
@@ -36,15 +38,23 @@
           </p>
         }
       </div>
-      <picture class="logo">
-        <source srcset="/logos/adaptit-dark.png" media="(prefers-color-scheme: dark)" />
-        <img src="/logos/adaptit.png" alt="Adapt IT" />
-      </picture>
+      <img class="logo" src="/logos/adaptit-navy.png" alt="Adapt IT" />
     </section>
   </div>
 
   <section class="panel">
     @if (screen() === 'details') {
+      <div class="toolbar">
+        <span class="spacer"></span>
+        @if (loading()) {
+          <mat-progress-spinner mode="indeterminate" diameter="24" />
+        }
+        <button mat-flat-button class="cta" type="submit" form="details-form" [disabled]="loading() || form.invalid">
+          Next
+          <span class="glyph" style="--icon: url(/icons/arrow-right.svg)"></span>
+        </button>
+      </div>
+
       <div class="content">
         <h3 class="panel-title">Enter your download details</h3>
 
@@ -91,32 +101,52 @@
       </div>
     } @else {
       <div class="toolbar">
-        <label class="search">
-          <mat-icon>search</mat-icon>
+        <button mat-stroked-button class="pill" type="button" (click)="back()">
+          <span class="glyph" style="--icon: url(/icons/arrow-left.svg)"></span>
+          Back
+        </button>
+        <span class="spacer"></span>
+        <div class="search" [class.open]="searchOpen() || query()">
+          <button
+            class="search-icon"
+            type="button"
+            aria-label="Search software"
+            title="Search software"
+            (mousedown)="$event.preventDefault()"
+            (click)="openSearch()"
+          >
+            <span class="glyph" style="--icon: url(/icons/search.svg)"></span>
+          </button>
           <input
+            #searchInput
             type="search"
             autocomplete="off"
             spellcheck="false"
             placeholder="Search software..."
             aria-label="Search software"
+            [tabIndex]="searchOpen() || query() ? 0 : -1"
             [value]="query()"
             (input)="query.set($any($event.target).value)"
-            (keydown.escape)="clearSearch()"
+            (keydown.escape)="escapeSearch()"
+            (blur)="closeSearchIfEmpty()"
           />
           @if (query()) {
             <button mat-icon-button type="button" aria-label="Clear search" (click)="clearSearch()">
               <mat-icon>close</mat-icon>
             </button>
           }
-        </label>
-        <span class="spacer"></span>
+        </div>
         <button mat-stroked-button class="pill accent" type="button" (click)="selectAll()">
-          <mat-icon>check</mat-icon>
+          <span class="badge"><span class="glyph" style="--icon: url(/icons/check.svg)"></span></span>
           Select all
         </button>
-        <button mat-stroked-button class="pill" type="button" (click)="selectNone()">
-          <mat-icon>remove_circle_outline</mat-icon>
+        <button mat-stroked-button class="pill select" type="button" (click)="selectNone()">
+          <span class="glyph" style="--icon: url(/icons/minus-circle.svg)"></span>
           Select none
+        </button>
+        <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="download()">
+          <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
+          Download ({{ selectedCount() }})
         </button>
       </div>
 
@@ -131,9 +161,6 @@
                 <li [class.match]="isMatch(product.productId)" [class.selected]="isSelected(product.productId)">
                   <mat-checkbox [checked]="isSelected(product.productId)" (change)="toggle(product.productId)">
                     <span class="row-body">
-                      <span class="tile tile-{{ tileColour(product) }}">
-                        <mat-icon>{{ productIcon(product) }}</mat-icon>
-                      </span>
                       <span class="row-text">
                         <span class="name-line">
                           <span class="name">
@@ -166,34 +193,14 @@
           }
         }
       </div>
-    }
-  </section>
 
-  <footer class="actions">
-    @if (screen() === 'details') {
-      <span class="spacer"></span>
-      @if (loading()) {
-        <mat-progress-spinner mode="indeterminate" diameter="24" />
-      }
-      <button mat-flat-button class="cta" type="submit" form="details-form" [disabled]="loading() || form.invalid">
-        Next
-        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
-      </button>
-    } @else {
-      <button mat-stroked-button class="pill back" type="button" (click)="back()">
-        <mat-icon>arrow_back</mat-icon>
-        Back
-      </button>
       <p class="summary">
         {{ products().length }} products · {{ selectedCount() }} selected
         @if (query().trim()) {
           · {{ matchingIds().size }} matching
         }
       </p>
-      <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="download()">
-        Download ({{ selectedCount() }} selected)
-        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
-      </button>
     }
-  </footer>
+  </section>
+
 </main>

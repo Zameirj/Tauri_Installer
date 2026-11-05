@@ -21,12 +21,32 @@ pub struct OrgProduct {
     pub licences: Vec<Licence>,
 }
 
-/// Only the licence tag is needed; the rest of the licence object is ignored.
+/// The licence tag and the organisations it belongs to; the rest of the licence object is ignored.
+/// Organisations appear on the licence directly or inside its bundles, depending on the product.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Licence {
     #[serde(default)]
     pub tag_name: Option<String>,
+    #[serde(default)]
+    pub organisations: Vec<Organisation>,
+    #[serde(default)]
+    pub bundles: Vec<Bundle>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Bundle {
+    #[serde(default)]
+    pub organisations: Vec<Organisation>,
+}
+
+/// Only the name is kept, for the banner. Codes in the API's organisation object are not passed on.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Organisation {
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 /// The code is appended to the URL, so only letters, digits and hyphens are allowed.

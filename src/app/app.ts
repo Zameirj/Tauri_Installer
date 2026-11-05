@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -26,29 +26,6 @@ const STEPS = ['Registration', 'My Software', 'Install/Distribution'];
 
 /** Order in which the type groups appear on screen 2. Unknown types follow at the end. */
 const PRODUCT_TYPE_ORDER = ['cwi', 'other', 'tmpl', 'custom'];
-
-/** Icon for a product row, picked from the first keyword found in the product name. */
-const PRODUCT_ICONS: [keyword: string, icon: string][] = [
-  ['connector', 'link'],
-  ['time', 'schedule'],
-  ['add-on', 'extension'],
-  ['idea', 'lightbulb'],
-  ['smartsync', 'description'],
-  ['working papers', 'description'],
-  ['sme', 'groups'],
-  ['ifrs', 'bar_chart'],
-];
-
-/** Icon used when no keyword in PRODUCT_ICONS matches. */
-const PRODUCT_TYPE_ICONS: Record<string, string> = {
-  cwi: 'apps',
-  other: 'extension',
-  tmpl: 'article',
-  custom: 'build',
-};
-
-/** Number of icon tile colours defined in app.scss (.tile-0 to .tile-5). */
-const TILE_COLOURS = 6;
 
 interface ProductGroup {
   type: string;
@@ -131,8 +108,33 @@ export class App {
   readonly selected = signal<ReadonlySet<string>>(new Set());
   readonly selectedCount = computed(() => this.selected().size);
 
+  /**
+   * Name of the organisation the download code belongs to, shown in the banner on screen 2.
+   * Taken from the first licence that lists an organisation, directly or through a bundle;
+   * some licences (e.g. Data Store tool) list none.
+   */
+  readonly organisationName = computed(() => {
+    for (const product of this.products()) {
+      for (const licence of product.licences) {
+        const organisations = [
+          ...(licence.organisations ?? []),
+          ...(licence.bundles ?? []).flatMap((bundle) => bundle.organisations ?? []),
+        ];
+        const name = organisations.find((org) => org.name?.trim())?.name?.trim();
+        if (name) {
+          return name;
+        }
+      }
+    }
+    return null;
+  });
+
   /** Text typed in the product search. Each word must fuzzy-match the product name (any order). */
   readonly query = signal('');
+
+  /** Whether the search field is expanded. Collapsed it shows only the magnifier button. */
+  readonly searchOpen = signal(false);
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   /** Lower-cased words typed in the search. */
   readonly searchTerms = computed(() =>
@@ -229,24 +231,31 @@ export class App {
       .filter((tag) => tag.length > 0);
   }
 
-  /** Clears the search text, so no rows stay highlighted. */
+  /** Clears the search text, so no rows stay highlighted, and keeps the field focused. */
   clearSearch(): void {
     this.query.set('');
+    this.searchInput()?.nativeElement.focus();
   }
 
-  productIcon(product: OrgProduct): string {
-    const name = product.name.toLowerCase();
-    const match = PRODUCT_ICONS.find(([keyword]) => name.includes(keyword));
-    return match?.[1] ?? PRODUCT_TYPE_ICONS[product.type] ?? 'inventory_2';
+  /** Expands the search from the magnifier and puts the cursor in it. */
+  openSearch(): void {
+    this.searchOpen.set(true);
+    this.searchInput()?.nativeElement.focus();
   }
 
-  /** Stable colour index for a product's icon tile, so each product keeps its colour. */
-  tileColour(product: OrgProduct): number {
-    let hash = 0;
-    for (const char of product.productId) {
-      hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  /** Escape clears the text first, then collapses the empty field back to the magnifier. */
+  escapeSearch(): void {
+    if (this.query()) {
+      this.clearSearch();
+    } else {
+      this.searchOpen.set(false);
     }
-    return hash % TILE_COLOURS;
+  }
+
+  closeSearchIfEmpty(): void {
+    if (!this.query()) {
+      this.searchOpen.set(false);
+    }
   }
 
   isMatch(productId: string): boolean {

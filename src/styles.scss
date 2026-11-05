@@ -7,8 +7,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$magenta-palette,
-        tertiary: mat.$violet-palette,
+        primary: mat.$violet-palette,
+        tertiary: mat.$magenta-palette,
       ),
       typography: (
         plain-family: 'Segoe UI, system-ui, sans-serif',
@@ -27,13 +27,27 @@ body {
   font: var(--mat-sys-body-large);
 }
 
-/* Deep navy (dark) or lavender (light) with glowing pink and blue particle waves, as in the wireframes. */
+/*
+ * Backdrop of wire-frames/Caseware Installer Software clean -purple.png, the same in both
+ * themes: slate behind the header and steps, turning lavender from the banner down, with the
+ * lavender waves from wire-frames/caseware_installer_backgrounds along the bottom. The stops
+ * are in px so they line up with the fixed header. (01_main_window_background.svg runs
+ * diagonally and stays slate down the left side, so it isn't used.) The slate header band
+ * behind the bar and steps is app-root::before (app.scss).
+ */
 body {
   background:
-    url('/bg-waves.svg') center bottom / cover no-repeat,
-    radial-gradient(50% 60% at 0% 100%, rgb(236 37 180 / 32%), transparent 70%),
-    radial-gradient(50% 60% at 100% 100%, rgb(56 101 245 / 32%), transparent 70%),
-    radial-gradient(60% 40% at 50% 0%, rgb(40 50 140 / 25%), transparent 70%),
-    light-dark(#f5f2fc, #050818);
+    url('/backgrounds/05_bottom_lavender_waves.svg') center bottom / 100% 26% no-repeat,
+    radial-gradient(45% 320px at 100% 0, rgb(200 205 245 / 45%), transparent),
+    linear-gradient(
+      180deg,
+      #2f3478 0,
+      #4a5592 60px,
+      #6470ad 125px,
+      #8590c8 185px,
+      #afb7e1 250px,
+      #c6cbef 400px,
+      #cad0f4 100%
+    );
   background-attachment: fixed;
 }

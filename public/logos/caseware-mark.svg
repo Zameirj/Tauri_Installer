@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Caseware mark, traced from wire-frames/cwa-2018.png. Source for `pnpm tauri icon`. -->
+  <path
+    d="M 898 540 A 388 388 0 1 0 124 500 L 124 830 C 124 910 180 930 222 860 L 512 380 L 840 880"
+    fill="none"
+    stroke="#f26255"
+    stroke-width="156"
+    stroke-linejoin="round"
+  />
+  <circle cx="840" cy="880" r="78" fill="#f26255" />
+</svg>
