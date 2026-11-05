@@ -1,12 +1,13 @@
 {
   "name": "setup-installer",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "scripts": {
     "ng": "ng",
     "tauri": "node scripts/tauri.mjs",
     "tauri:dev": "node scripts/tauri.mjs dev",
     "tauri:build": "node scripts/tauri.mjs build",
     "build:portable": "node scripts/tauri.mjs build --no-bundle && node scripts/collect-portable.mjs",
+    "bump-version": "node scripts/bump-version.mjs",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development"

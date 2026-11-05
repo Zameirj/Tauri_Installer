@@ -53,7 +53,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 | --- | --- | --- |
 | 1 | Registration | Download code, email, EULA checkbox, Next |
 | 2 | My Software | Product list with search, selection and Download |
-| 3 | Install/Distribution | Not built yet |
+| 3 | Install/Distribution | Downloaded products, ready to install (Install is a placeholder) |
 
 ### Screen 1: Registration
 
@@ -69,7 +69,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 2. **Products within a group are sorted by name** (`localeCompare`).
 3. **Each row** has a checkbox, the product name (with a red "New!" badge when `notification` is set), and the version in a smaller font below the name.
 4. **Template rows only** show their licence tags on the right, one per `licences[].tagName`. Double spaces in tag names are collapsed. Tags wrap and take at most 60% of the row, so the name is never squashed.
-5. **Toolbar** at the top of the list panel: Back on the left; a search button, Select all, Select none and **Download (n)**. Download is disabled at 0 and shows the number selected. Its action is a placeholder snackbar until the download step is defined.
+5. **Toolbar** at the top of the list panel: Back on the left; a search button, Select all, Select none and **Download (n)**. Download is disabled at 0 and shows the number selected. It downloads the selected products one at a time with a progress bar under the toolbar, extracts them with the bundled 7-Zip, then opens step 3. Products already downloaded stay ticked and locked.
 6. **Search** matches only the product name. Each word typed must fuzzy-match the name in any order: the letters must appear in order but need not be adjacent. Matching rows get a blue background and the matched letters a yellow highlight. Rows that do not match stay visible. The footer shows "N matching" while a search is active. The search starts as a magnifier button; clicking it opens and focuses the field, which collapses again when it is empty and loses focus. Escape or the × clears the search.
 7. **Summary** at the foot of the list panel shows "N products · N selected", plus "· N matching" during a search.
 
@@ -90,7 +90,6 @@ The app has a three-step header. Only the first two steps have screens so far.
 
 ## Decisions to revisit
 
-- **Download action:** the Download button is a placeholder. The next step needs a definition (what is downloaded, where it is saved, whether it uses the `versions` list).
-- **Install/Distribution:** step 3 is shown in the header but has no screen.
+- **Install action:** step 3 lists the downloaded products, but the Install button is a placeholder until the run logic is defined.
 - **Remote self-update:** the Import Centre app has one; this app does not.
 - **Fourth product type:** the JSON data shows `cwi`, `tmpl`, `other` and `custom`. Unknown values display as their raw text.

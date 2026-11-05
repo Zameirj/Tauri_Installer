@@ -5,11 +5,21 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ApiService, OrgProduct } from './api.service';
+import {
+  ApiService,
+  DownloadItem,
+  DownloadProgress,
+  OrgProduct,
+  UpdateInfo,
+  UpdateProgress,
+} from './api.service';
+import { compareVersions, UPDATE_CHECK_URL, UPDATE_FILE_KEY, UPDATE_SIGNED_URL_ENDPOINT } from './update-config';
 
 const EULA_URL =
   'https://webcontent.casewareafrica.com/CaseWare_Community/My%20Account%20Docs/CWA%20EULA.pdf';
@@ -73,7 +83,9 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './app.html',
 })
@@ -99,9 +111,26 @@ export class App {
   /** Version from tauri.conf.json, shown in the header as in Import Centre. */
   readonly appVersion = signal('');
 
-  readonly screen = signal<'details' | 'products'>('details');
+  /** Set when the version endpoint reports a newer release. The UI blocks until it is installed. */
+  readonly availableUpdate = signal<UpdateInfo | null>(null);
+  readonly updating = signal(false);
+  readonly updateProgress = signal<UpdateProgress | null>(null);
+  readonly updateError = signal('');
+  readonly updateSavedTo = signal('');
+  readonly progressPct = computed(() => {
+    const p = this.updateProgress();
+    return p?.total ? Math.round((p.downloaded * 100) / p.total) : null;
+  });
+  readonly progressText = computed(() => {
+    const p = this.updateProgress();
+    if (!p) return 'Contacting the download service...';
+    const mb = (n: number) => (n / 1048576).toFixed(1);
+    return p.total ? `${mb(p.downloaded)} of ${mb(p.total)} MB` : `${mb(p.downloaded)} MB`;
+  });
+
+  readonly screen = signal<'details' | 'products' | 'install'>('details');
   readonly steps = STEPS;
-  readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : 1));
+  readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : this.screen() === 'products' ? 1 : 2));
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly products = signal<OrgProduct[]>([]);
@@ -127,6 +156,36 @@ export class App {
       }
     }
     return null;
+  });
+
+  /** Download of the selected products, one file at a time. */
+  readonly downloading = signal(false);
+  readonly downloadProgress = signal<DownloadProgress | null>(null);
+  readonly downloadError = signal('');
+  readonly downloadPct = computed(() => {
+    const p = this.downloadProgress();
+    return p?.total ? Math.round((p.downloaded * 100) / p.total) : null;
+  });
+  readonly extracting = signal(false);
+
+  /** Products downloaded and waiting for install, from myapps.json. Their rows on the products screen are locked. */
+  readonly downloadedIds = signal<ReadonlySet<string>>(new Set());
+  /** The product selection is restored on Back from step 3. */
+  private savedSelection: ReadonlySet<string> = new Set();
+  /** Step 3 lists the products that are waiting for install. */
+  readonly listedProducts = computed(() =>
+    this.screen() === 'install'
+      ? this.products().filter((p) => this.downloadedIds().has(p.productId))
+      : this.products(),
+  );
+  readonly downloadStatus = computed(() => {
+    if (this.extracting()) return 'Extracting the downloaded files...';
+    const p = this.downloadProgress();
+    if (!p) return 'Starting...';
+    const name = this.products().find((x) => x.productId === p.productId)?.name ?? '';
+    const mb = (n: number) => (n / 1048576).toFixed(1);
+    const size = p.total ? ` of ${mb(p.total)} MB` : '';
+    return `${p.index + 1} of ${p.count}: ${name} (${mb(p.downloaded)}${size})`;
   });
 
   /** Text typed in the product search. Each word must fuzzy-match the product name (any order). */
@@ -159,7 +218,7 @@ export class App {
 
   /** Products grouped by type in PRODUCT_TYPE_ORDER, each group sorted by name. */
   readonly groups = computed<ProductGroup[]>(() => {
-    const products = this.products();
+    const products = this.listedProducts();
     const types = [
       ...PRODUCT_TYPE_ORDER,
       ...new Set(products.map((p) => p.type).filter((t) => !PRODUCT_TYPE_ORDER.includes(t))),
@@ -176,9 +235,45 @@ export class App {
   });
 
   constructor() {
+    // Products already downloaded in an earlier session stay locked and pending for install.
+    this.loadDownloaded().catch((e) => console.warn('Could not read myapps.json', e));
     getVersion()
-      .then((version) => this.appVersion.set(version))
+      .then((version) => {
+        this.appVersion.set(version);
+        void this.checkForUpdate();
+      })
       .catch(() => this.appVersion.set(''));
+  }
+
+  /** Asks the update endpoint for the latest version. Failures are silent (the app keeps working). */
+  async checkForUpdate(): Promise<void> {
+    if (!UPDATE_CHECK_URL) return;
+    try {
+      const latest = await this.api.checkForUpdate(UPDATE_CHECK_URL);
+      this.availableUpdate.set(compareVersions(latest.version, this.appVersion()) > 0 ? latest : null);
+    } catch (e) {
+      console.warn('Update check failed', e);
+    }
+  }
+
+  /** The update is mandatory: download it, swap it in and let the backend restart the app. */
+  async startUpdate(): Promise<void> {
+    const latest = this.availableUpdate();
+    if (!latest) return;
+    this.updating.set(true);
+    this.updateError.set('');
+    this.updateProgress.set(null);
+    const unlisten = await this.api.onUpdateProgress((p) => this.updateProgress.set(p));
+    try {
+      const key = UPDATE_FILE_KEY.replace('{version}', latest.version);
+      const result = await this.api.installUpdate(UPDATE_SIGNED_URL_ENDPOINT, key);
+      if (result.savedTo) this.updateSavedTo.set(result.savedTo); // otherwise the app restarts itself
+    } catch (e) {
+      this.updateError.set(String(e));
+    } finally {
+      unlisten();
+      this.updating.set(false);
+    }
   }
 
   /** Removes leading and trailing spaces from the download code as it is typed or pasted. */
@@ -216,7 +311,27 @@ export class App {
 
   back(): void {
     this.error.set(null);
-    this.screen.set('details');
+    if (this.screen() === 'install') {
+      this.selected.set(new Set([...this.savedSelection].filter((id) => !this.downloadedIds().has(id))));
+      this.screen.set('products');
+    } else {
+      this.screen.set('details');
+    }
+  }
+
+  /** Reads myapps.json: every product downloaded and waiting for install. */
+  async loadDownloaded(): Promise<void> {
+    const apps = await this.api.pendingApps();
+    this.downloadedIds.set(new Set(apps.map((a) => a.productId)));
+  }
+
+  /** Step 3 install action. The install logic is not defined yet. */
+  install(): void {
+    this.snackBar.open(
+      `${this.selectedCount()} product(s) selected. Install is not built yet.`,
+      'OK',
+      { duration: 4000 },
+    );
   }
 
   /** Friendly badge text for the API's product `type`; unknown values are shown as-is. */
@@ -250,6 +365,12 @@ export class App {
     } else {
       this.searchOpen.set(false);
     }
+  }
+
+  /** Clears and collapses the search, e.g. when moving to step 3. */
+  closeSearch(): void {
+    this.query.set('');
+    this.searchOpen.set(false);
   }
 
   closeSearchIfEmpty(): void {
@@ -292,7 +413,17 @@ export class App {
     return this.selected().has(productId);
   }
 
+  /** A downloaded product cannot be picked again on the products screen. */
+  isLocked(productId: string): boolean {
+    return this.screen() === 'products' && this.downloadedIds().has(productId);
+  }
+
+  isChecked(productId: string): boolean {
+    return this.isSelected(productId) || this.isLocked(productId);
+  }
+
   toggle(productId: string): void {
+    if (this.isLocked(productId)) return;
     const next = new Set(this.selected());
     if (next.has(productId)) {
       next.delete(productId);
@@ -302,16 +433,60 @@ export class App {
     this.selected.set(next);
   }
 
+  /** Selects every product that can still be downloaded (or every listed product on step 3). */
   selectAll(): void {
-    this.selected.set(new Set(this.products().map((p) => p.productId)));
+    const ids =
+      this.screen() === 'install'
+        ? this.downloadedIds()
+        : this.products().map((p) => p.productId).filter((id) => !this.downloadedIds().has(id));
+    this.selected.set(new Set(ids));
   }
 
   selectNone(): void {
     this.selected.set(new Set());
   }
 
-  download(): void {
-    // Placeholder: the download step is not defined yet.
-    this.snackBar.open(`${this.selectedCount()} product(s) selected`, 'OK', { duration: 4000 });
+  /** Downloads each selected product in order and reports the folder the files were saved to. */
+  async download(): Promise<void> {
+    if (this.downloading()) return;
+    // Same order as the list on screen: group by group, then by name.
+    const items: DownloadItem[] = this.groups()
+      .flatMap((group) => group.products)
+      .filter((p) => this.selected().has(p.productId))
+      .map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        version: p.version,
+      }));
+    if (items.length === 0) return;
+
+    this.downloading.set(true);
+    this.downloadError.set('');
+    this.downloadProgress.set(null);
+    const unlisten = await this.api.onDownloadProgress((p) => this.downloadProgress.set(p));
+    try {
+      const { folder, files } = await this.api.downloadProducts(items);
+      // Step 3 starts here: extract the archives into their product folders.
+      this.extracting.set(true);
+      this.downloadProgress.set(null);
+      const extracted = await this.api.extractProducts(items);
+      this.snackBar.open(
+        `Downloaded ${files.length} and extracted ${extracted.length} product(s) to ${folder}`,
+        'OK',
+        { duration: 6000 },
+      );
+      // Step 3: every product waiting for install (from myapps.json) is listed and selected.
+      this.savedSelection = this.selected();
+      await this.loadDownloaded();
+      this.selected.set(new Set(this.downloadedIds()));
+      this.closeSearch();
+      this.screen.set('install');
+    } catch (e) {
+      this.downloadError.set(String(e));
+    } finally {
+      unlisten();
+      this.extracting.set(false);
+      this.downloading.set(false);
+    }
   }
 }

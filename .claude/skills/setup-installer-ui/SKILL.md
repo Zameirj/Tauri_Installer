@@ -34,7 +34,7 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 - Three steps: 1 Registration, 2 My Software, 3 Install/Distribution. Their names are the `STEPS` constant in `app.ts`.
 - Circles with the label underneath. `currentStep` is derived from `screen()`. Completed and current steps are filled with the pink-violet gradient (the current one glows); future steps are outlined. Lines between completed steps use the gradient.
-- Step 3 has no screen yet. Do not link to it until it exists.
+- Step 3 (Install/Distribution) is the `install` screen. It opens after a download and extraction finish, and lists only the downloaded products, using the same group rows as screen 2. Its toolbar is Back, spacer, Select all, Select none and Install (n) as a `.cta` (no search). The banner text changes to ask what to install. Install is a placeholder until the run logic is defined.
 
 ## Screen 1: Registration
 
@@ -84,7 +84,7 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 
 - Selection is by `productId` in a `Set`, replaced rather than mutated so signals update.
 - **Select all** and **Select none** act on all products, not only visible or matching ones.
-- **Download (n)** is disabled at 0 and always shows the number selected. Its action is a placeholder. Replace it only once the download behaviour is agreed.
+- **Download (n)** is disabled at 0 and always shows the number selected. It downloads the selected products one at a time through `download_products` (Rust, `products.rs`). Each file's storage key is `products/{name}/versions/{version}/{productId}.exe`, and it is saved to Downloads under `Caseware Installer`. A violet progress bar and status line (`.progress`) sit under the toolbar while it runs, inside the panel. The button is disabled during a download.
 
 ## Messages and feedback
 
@@ -100,3 +100,11 @@ Follow these rules when changing `src/app/`. They describe what the UI already d
 4. The app works at 900 × 640 and at 1377 × 835 without horizontal scrolling.
 5. Light and dark themes both read clearly (the highlight colours are fixed, so check them on both).
 6. New text uses sentence case, and the app is called "Caseware Installer" everywhere (header, window title, page title).
+
+## Zam's features in this look
+
+- **Update blocker**: when the version endpoint reports a newer release, `.blocker` covers the app (blurred navy veil) with a lavender `.blocker-card` and a `.cta` Update now button. It can't be dismissed.
+- **Locked rows**: products already downloaded (`myapps.json`) are ticked, disabled and get `li.locked` (flatter, no shadow) on screen 2.
+- **Info icon**: products with a `description` show a small violet `mat-icon.info` after the name with a `matTooltip`.
+- **QR code**: under the registration form in `.qr`, on a white tile with violet text.
+- Zam's brand styling (dark-only theme, League Spartan, `--brand-*` tokens, `button.brand`, coral panel border) is **not** used; this look replaces it.

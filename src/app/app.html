@@ -6,6 +6,46 @@
   }
 </header>
 
+@if (availableUpdate(); as update) {
+  <div class="blocker" role="alertdialog" aria-modal="true" aria-labelledby="update-title">
+    <div class="blocker-card">
+      <span class="blocker-icon"><span class="glyph" style="--icon: url(/icons/download.svg)"></span></span>
+      <h2 id="update-title">Update required</h2>
+      <p>
+        Caseware Installer <strong>{{ update.version }}</strong> is available. You are on
+        {{ appVersion() }}. Install the update to continue.
+      </p>
+      @if (update.notes) {
+        <p class="hint">{{ update.notes }}</p>
+      }
+      @if (updating()) {
+        <mat-progress-bar
+          [mode]="progressPct() === null ? 'indeterminate' : 'determinate'"
+          [value]="progressPct() ?? 0"
+        />
+        <p class="hint">{{ progressText() }}. The app restarts when it is done.</p>
+      } @else if (updateSavedTo()) {
+        <p class="ok">
+          <span class="glyph" style="--icon: url(/icons/check.svg)"></span>
+          Downloaded, but this copy cannot replace itself here.
+        </p>
+        <p class="hint">Close Caseware Installer and run the new file from: {{ updateSavedTo() }}</p>
+      } @else {
+        @if (updateError()) {
+          <p class="error" role="alert">
+            <mat-icon>error</mat-icon>
+            {{ updateError() }}
+          </p>
+        }
+        <button mat-flat-button class="cta" type="button" (click)="startUpdate()">
+          <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
+          {{ updateError() ? 'Try again' : 'Update now' }}
+        </button>
+      }
+    </div>
+  </div>
+}
+
 <main>
   <div class="top">
     <nav class="steps" aria-label="Progress">
@@ -24,13 +64,15 @@
       <!-- The banner is light lavender in both themes, so the dark-text logos are always used. -->
       <img class="logo" src="/logos/caseware.png" alt="Caseware" />
       <div class="banner-text">
-        @if (screen() === 'products' && organisationName()) {
+        @if (screen() !== 'details' && organisationName()) {
           <h2>{{ organisationName() }}</h2>
         } @else {
           <h2>Caseware Africa, A Division of Adapt IT (Pty) Ltd</h2>
         }
         @if (screen() === 'details') {
           <p>Enter your download code and email address to see the software available to you.</p>
+        } @else if (screen() === 'install') {
+          <p>Your software has been downloaded. Select the software you would like to install.</p>
         } @else {
           <p>
             Select the software you would like to download. Below is a list of software available to
@@ -98,6 +140,11 @@
             </p>
           }
         </form>
+
+        <section class="qr">
+          <img src="caseware-mobile-qr.svg" alt="QR code for the Caseware Africa Mobile app" width="120" height="120" />
+          <p>Scan the code for future product updates!</p>
+        </section>
       </div>
     } @else {
       <div class="toolbar">
@@ -106,36 +153,38 @@
           Back
         </button>
         <span class="spacer"></span>
-        <div class="search" [class.open]="searchOpen() || query()">
-          <button
-            class="search-icon"
-            type="button"
-            aria-label="Search software"
-            title="Search software"
-            (mousedown)="$event.preventDefault()"
-            (click)="openSearch()"
-          >
-            <span class="glyph" style="--icon: url(/icons/search.svg)"></span>
-          </button>
-          <input
-            #searchInput
-            type="search"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="Search software..."
-            aria-label="Search software"
-            [tabIndex]="searchOpen() || query() ? 0 : -1"
-            [value]="query()"
-            (input)="query.set($any($event.target).value)"
-            (keydown.escape)="escapeSearch()"
-            (blur)="closeSearchIfEmpty()"
-          />
-          @if (query()) {
-            <button mat-icon-button type="button" aria-label="Clear search" (click)="clearSearch()">
-              <mat-icon>close</mat-icon>
+        @if (screen() === 'products') {
+          <div class="search" [class.open]="searchOpen() || query()">
+            <button
+              class="search-icon"
+              type="button"
+              aria-label="Search software"
+              title="Search software"
+              (mousedown)="$event.preventDefault()"
+              (click)="openSearch()"
+            >
+              <span class="glyph" style="--icon: url(/icons/search.svg)"></span>
             </button>
-          }
-        </div>
+            <input
+              #searchInput
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Search software..."
+              aria-label="Search software"
+              [tabIndex]="searchOpen() || query() ? 0 : -1"
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+              (keydown.escape)="escapeSearch()"
+              (blur)="closeSearchIfEmpty()"
+            />
+            @if (query()) {
+              <button mat-icon-button type="button" aria-label="Clear search" (click)="clearSearch()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+        }
         <button mat-stroked-button class="pill accent" type="button" (click)="selectAll()">
           <span class="badge"><span class="glyph" style="--icon: url(/icons/check.svg)"></span></span>
           Select all
@@ -144,22 +193,58 @@
           <span class="glyph" style="--icon: url(/icons/minus-circle.svg)"></span>
           Select none
         </button>
-        <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="download()">
-          <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
-          Download ({{ selectedCount() }})
-        </button>
+        @if (screen() === 'install') {
+          <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="install()">
+            <mat-icon>install_desktop</mat-icon>
+            Install ({{ selectedCount() }})
+          </button>
+        } @else {
+          <button
+            mat-flat-button
+            class="cta"
+            type="button"
+            [disabled]="selectedCount() === 0 || downloading()"
+            (click)="download()"
+          >
+            <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
+            Download ({{ selectedCount() }})
+          </button>
+        }
       </div>
 
+      @if (downloading()) {
+        <div class="progress">
+          <mat-progress-bar
+            [mode]="downloadPct() === null ? 'indeterminate' : 'determinate'"
+            [value]="downloadPct() ?? 0"
+          />
+          <p class="hint">{{ downloadStatus() }}</p>
+        </div>
+      } @else if (downloadError()) {
+        <p class="error progress" role="alert">
+          <mat-icon>error</mat-icon>
+          {{ downloadError() }}
+        </p>
+      }
+
       <div class="content list">
-        @if (products().length === 0) {
+        @if (listedProducts().length === 0) {
           <p class="empty">No products were found for this download code.</p>
         } @else {
           @for (group of groups(); track group.type) {
             <h3 class="group-title type-{{ group.type }}">{{ group.label }}</h3>
             <ul>
               @for (product of group.products; track product.productId) {
-                <li [class.match]="isMatch(product.productId)" [class.selected]="isSelected(product.productId)">
-                  <mat-checkbox [checked]="isSelected(product.productId)" (change)="toggle(product.productId)">
+                <li
+                  [class.match]="isMatch(product.productId)"
+                  [class.selected]="isSelected(product.productId)"
+                  [class.locked]="isLocked(product.productId)"
+                >
+                  <mat-checkbox
+                    [checked]="isChecked(product.productId)"
+                    [disabled]="isLocked(product.productId)"
+                    (change)="toggle(product.productId)"
+                  >
                     <span class="row-body">
                       <span class="row-text">
                         <span class="name-line">
@@ -174,6 +259,18 @@
                           </span>
                           @if (product.notification) {
                             <span class="chip new">{{ product.notification }}</span>
+                          }
+                          @if (product.description) {
+                            <mat-icon
+                              #info="matTooltip"
+                              class="info"
+                              tabindex="0"
+                              role="img"
+                              aria-label="Product description"
+                              [matTooltip]="product.description"
+                              (click)="$event.preventDefault(); $event.stopPropagation(); info.show()"
+                              (keydown.enter)="$event.preventDefault(); info.show()"
+                            >info</mat-icon>
                           }
                         </span>
                         <span class="version">{{ product.version }}</span>
@@ -195,7 +292,7 @@
       </div>
 
       <p class="summary">
-        {{ products().length }} products · {{ selectedCount() }} selected
+        {{ listedProducts().length }} products · {{ selectedCount() }} selected
         @if (query().trim()) {
           · {{ matchingIds().size }} matching
         }

@@ -710,3 +710,148 @@ form {
   font: var(--mat-sys-body-small);
   text-align: right;
 }
+
+// Download progress under the screen 2 toolbar.
+.progress {
+  margin: 0;
+  padding: 10px 16px 0;
+
+  .hint {
+    margin-top: 6px;
+  }
+}
+
+mat-progress-bar {
+  @include mat.progress-bar-overrides(
+    (
+      active-indicator-color: var(--accent),
+      track-color: #d4cdf2,
+      track-shape: 999px,
+    )
+  );
+
+  border-radius: 999px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font: var(--mat-sys-body-small);
+}
+
+.ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #1b7f4b;
+
+  .glyph {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Product description tooltip trigger beside the name.
+.info {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--accent-soft);
+  font-size: 18px;
+  cursor: help;
+
+  .match & {
+    color: #fff;
+  }
+}
+
+// Rows already downloaded (myapps.json) stay ticked but can't be picked again.
+.list li.locked {
+  background: rgb(255 255 255 / 45%);
+  box-shadow: none;
+}
+
+// Mobile app QR code under the registration form.
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  text-align: center;
+
+  img {
+    padding: 6px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgb(60 50 140 / 16%);
+  }
+
+  p {
+    margin: 0;
+    color: var(--accent);
+    font: var(--mat-sys-title-small);
+    font-weight: 600;
+  }
+}
+
+// Mandatory update prompt: covers the app and can't be dismissed.
+.blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(20 22 90 / 45%);
+  backdrop-filter: blur(6px);
+}
+
+.blocker-card {
+  color-scheme: light;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(480px, 100%);
+  padding: 28px;
+  border: 1px solid #fff;
+  border-radius: 16px;
+  background: url('/backgrounds/04_software_panel_background.svg') center / 100% 100% no-repeat, #e6e9fb;
+  box-shadow: var(--glass-shadow);
+  color: var(--ink);
+
+  h2 {
+    margin: 0;
+    font: var(--mat-sys-headline-small);
+  }
+
+  p {
+    margin: 0;
+  }
+
+  mat-progress-bar {
+    width: 100%;
+  }
+
+  .error {
+    justify-content: flex-start;
+  }
+}
+
+.blocker-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--cta-gradient);
+  color: #fff;
+
+  .glyph {
+    width: 24px;
+    height: 24px;
+  }
+}
