@@ -51,17 +51,18 @@ The app has a three-step header. Only the first two steps have screens so far.
 
 | Step | Name | Screen |
 | --- | --- | --- |
-| 1 | Registration | Download code, email, EULA checkbox, Next |
+| 1 | Verification | Download code, email, EULA checkbox, Next |
 | 2 | My Software | Product list with search, selection and Download |
 | 3 | Install/Distribution | Downloaded products, ready to install (Install is a placeholder) |
 
-### Screen 1: Registration
+### Screen 1: Verification
 
 - **Download code** is required and must match `xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx` (8 letters or digits per group, case-insensitive). Example format: `abcd1234-efgh5678-ijkl9012-mnop3456`.
 - **Email** is required and must match `name@domain.tld`. Angular's built-in `Validators.email` accepts `z@z`, so the app uses its own pattern.
 - **EULA checkbox** is required. The "EULA" link opens the PDF in the default browser through `@tauri-apps/plugin-opener`. The click does not toggle the checkbox.
 - **Next** stays disabled until the form is valid and the EULA box is ticked. It sits at the top right of the panel, and a spinner appears beside it while the request runs.
-- On success the app moves to screen 2. On failure the error message appears above the EULA checkbox.
+- On success the app moves to screen 2. On failure the error message appears below the EULA checkbox.
+- The layout is based on `wire-frames/registration_page_assets/04_registration_design_reference.png`, without its side panel: the form, centred, with the **notifications banner** under it with the QR code for the Caseware notifications app. The banner art is `wire-frames/correct-banner.png` with its text and sample QR code removed (`public/backgrounds/notifications-banner.webp`); the app draws the text itself and shows the genuine QR code (`public/caseware-mobile-qr.svg`, which opens https://mobile.prod.casewareafrica.com/) with "Scan to Download". The old coral Caseware marks on the phone, the bell badge and in the centre of the QR code are replaced with the gradient mark.
 
 ### Screen 2: My Software
 
@@ -75,8 +76,9 @@ The app has a three-step header. Only the first two steps have screens so far.
 
 ### Layout
 
-- The app header, steps, brand banner and panel toolbar are fixed. Only the `.content` area scrolls.
-- The look follows the purple wireframe in `wire-frames/` (`Caseware Installer Software clean -purple.png`) in both light and dark mode, with backgrounds from `wire-frames/caseware_installer_backgrounds` in `public/backgrounds`. App styles are in `src/app/app.scss`, loaded globally from `styles.scss`.
+- The hero (title and steps), the card's brand row and the toolbar are fixed. Only the `.content` area scrolls.
+- The look follows the company-branding wireframe (`wire-frames/Caseware Installer company-branding.png`) in both light and dark mode: a dark hero over `wire-frames/banner.png` and a light card over `wire-frames/background.png` (both exported to WebP in `public/backgrounds`). App styles are in `src/app/app.scss`, loaded globally from `styles.scss`.
+- The Caseware logo uses the gradient mark (`wire-frames/caseware-mark-gradient.png`). `app-icon.png` is a 1024px version of it and the source for the window and taskbar icons: run `pnpm tauri icon` to regenerate `src-tauri/icons`.
 - The window opens at 1377 × 835 (`tauri.conf.json`). Minimum size is 900 × 640.
 
 ## API
@@ -86,7 +88,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 - URL: `https://api.prod.casewareafrica.com/api/organisations/orgProducts/byDownloadCode/{downloadCode}`
 - The download code is trimmed and checked on the Rust side. Only letters, digits and hyphens up to 64 characters are accepted, because the value is appended to the URL.
 - Timeout: 30 seconds. Non-2xx responses return an error message to the UI.
-- Fields used: `productId`, `name`, `version`, `type`, `notification`, `licences[].tagName`, and the organisation name from `licences[].organisations[].name` or `licences[].bundles[].organisations[].name` (first one found; shown in the screen 2 banner). Other fields in the response, including the codes in the organisation objects, are ignored.
+- Fields used: `productId`, `name`, `version`, `type`, `notification`, `licences[].tagName`, and the organisation name from `licences[].organisations[].name` or `licences[].bundles[].organisations[].name` (first one found; shown in the card's brand row on screens 2 and 3). Other fields in the response, including the codes in the organisation objects, are ignored.
 
 ## Decisions to revisit
 

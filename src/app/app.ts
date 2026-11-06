@@ -1,4 +1,15 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -32,7 +43,7 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 };
 
 /** Steps shown in the header. Only the first two screens exist so far. */
-const STEPS = ['Registration', 'My Software', 'Install/Distribution'];
+const STEPS = ['Verification', 'My Software', 'Install/Distribution'];
 
 /** Order in which the type groups appear on screen 2. Unknown types follow at the end. */
 const PRODUCT_TYPE_ORDER = ['cwi', 'other', 'tmpl', 'custom'];
@@ -74,6 +85,9 @@ const DOWNLOAD_CODE_PATTERN = /^[a-z0-9]{8}(-[a-z0-9]{8}){3}$/i;
  */
 const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 
+/** Smallest scale fitToWindow() draws the app at; below it the registration area scrolls instead. */
+const MIN_FIT = 0.6;
+
 @Component({
   selector: 'app-root',
   imports: [
@@ -92,6 +106,11 @@ const EMAIL_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
 export class App {
   private readonly api = inject(ApiService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /** Window height the registration screen needs at full size, measured by fitToWindow(). */
+  private registrationHeight = 0;
+  private fitFrame = 0;
 
   readonly form = new FormGroup({
     downloadCode: new FormControl('', {
@@ -243,6 +262,84 @@ export class App {
         void this.checkForUpdate();
       })
       .catch(() => this.appVersion.set(''));
+
+    // Fit the app to the window (see fitToWindow): after the first render, on resize, once fonts
+    // have loaded, on every screen change, and when messages change the form's height.
+    afterNextRender(() => this.fitToWindow());
+    const onResize = () => this.scheduleFit();
+    window.addEventListener('resize', onResize);
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('resize', onResize));
+    void document.fonts.ready.then(() => this.scheduleFit());
+    effect(() => {
+      this.screen();
+      this.error();
+      this.scheduleFit();
+    });
+    this.form.events.pipe(takeUntilDestroyed()).subscribe(() => this.scheduleFit());
+  }
+
+  private scheduleFit(): void {
+    cancelAnimationFrame(this.fitFrame);
+    this.fitFrame = requestAnimationFrame(() => this.fitToWindow());
+  }
+
+  /**
+   * Scales the whole app (CSS zoom on app-root) so the registration screen fits the window with
+   * no scrolling at any desktop size: full size when it fits, otherwise the largest scale that
+   * fits (a binary search), but not below MIN_FIT. Zoom lays the page out again at the smaller
+   * size, so text stays sharp, and the layout gets wider as it shrinks, so text wraps less.
+   * Screens 2 and 3 use the scale the registration screen needs in the same window; their
+   * product list scrolls as usual.
+   */
+  private fitToWindow(): void {
+    const host = this.host.nativeElement;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const apply = (scale: number) => {
+      host.style.zoom = scale === 1 ? '' : String(scale);
+      host.style.width = scale === 1 ? '' : `${width / scale}px`;
+      host.style.height = scale === 1 ? '' : `${height / scale}px`;
+    };
+
+    const register = host.querySelector<HTMLElement>('.content.register');
+    if (!register) {
+      const needed = this.registrationHeight;
+      apply(needed ? Math.min(1, Math.max(MIN_FIT, height / needed)) : 1);
+      return;
+    }
+
+    // Height of the registration area's content without the grid stretching it to fill.
+    const natural = () => {
+      register.classList.add('measuring');
+      const style = getComputedStyle(register);
+      const rows = Math.max(...Array.from(register.children, (child) => (child as HTMLElement).offsetHeight));
+      register.classList.remove('measuring');
+      return rows + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    };
+    const fits = (scale: number) => {
+      apply(scale);
+      return natural() <= register.clientHeight + 0.5;
+    };
+
+    apply(1);
+    this.registrationHeight = height - register.clientHeight + natural();
+    let scale = 1;
+    if (!fits(1)) {
+      let low = MIN_FIT;
+      let high = 1;
+      if (fits(low)) {
+        for (let i = 0; i < 8; i++) {
+          const mid = (low + high) / 2;
+          if (fits(mid)) {
+            low = mid;
+          } else {
+            high = mid;
+          }
+        }
+      }
+      scale = low;
+    }
+    apply(scale);
   }
 
   /** Asks the update endpoint for the latest version. Failures are silent (the app keeps working). */

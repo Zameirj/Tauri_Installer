@@ -1,6 +1,9 @@
 @use '@angular/material' as mat;
 @use 'app/app';
 @import 'material-icons/iconfont/filled.css';
+// Archivo (OFL), bundled: the closest open font to the Caseware wordmark, used for the word
+// "installer" in the hero lockup (see .hero-brand h1 in app.scss).
+@import '@fontsource-variable/archivo/wdth.css';
 
 html {
   color-scheme: light dark;
@@ -23,31 +26,93 @@ html,
 body {
   height: 100%;
   margin: 0;
+  // The app fills the window and scrolls only inside its panels (see App.fitToWindow()).
+  overflow: hidden;
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-large);
 }
 
 /*
- * Backdrop of wire-frames/Caseware Installer Software clean -purple.png, the same in both
- * themes: slate behind the header and steps, turning lavender from the banner down, with the
- * lavender waves from wire-frames/caseware_installer_backgrounds along the bottom. The stops
- * are in px so they line up with the fixed header. (01_main_window_background.svg runs
- * diagonally and stays slate down the left side, so it isn't used.) The slate header band
- * behind the bar and steps is app-root::before (app.scss).
+ * Page backdrop from wire-frames/background.png (public/backgrounds/app-background.webp), the
+ * same in both themes: dark navy at the top under the hero, lavender in the middle and the
+ * pink-violet-blue waves along the bottom, which show around the card. Anchored to the bottom
+ * so the waves stay visible at any window shape. The hero image is .hero::before (app.scss).
  */
 body {
-  background:
-    url('/backgrounds/05_bottom_lavender_waves.svg') center bottom / 100% 26% no-repeat,
-    radial-gradient(45% 320px at 100% 0, rgb(200 205 245 / 45%), transparent),
-    linear-gradient(
-      180deg,
-      #2f3478 0,
-      #4a5592 60px,
-      #6470ad 125px,
-      #8590c8 185px,
-      #afb7e1 250px,
-      #c6cbef 400px,
-      #cad0f4 100%
-    );
-  background-attachment: fixed;
+  background: #cfd3f6 url('/backgrounds/app-background.webp') center bottom / cover no-repeat;
+}
+
+/*
+ * Product description popover (matTooltipClass="info-bubble" on the .info icon). The tooltip
+ * renders in the CDK overlay, outside app-root, so it is styled here. A white speech bubble with
+ * a violet accent and a tail pointing at the icon; Material adds the
+ * mat-mdc-tooltip-panel-{above,below,left,right} class for whichever side it opened on.
+ */
+.info-bubble {
+  --bubble-bg: #ffffff;
+  --bubble-border: #d9d3f5;
+
+  // Wide and short: long descriptions read as a few lines rather than a tall column.
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px)) !important;
+  overflow: visible !important;
+
+  @include mat.tooltip-overrides(
+    (
+      container-color: var(--bubble-bg),
+      supporting-text-color: #1f2240,
+      supporting-text-font: "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+      supporting-text-size: 13.5px,
+      supporting-text-line-height: 1.55,
+      supporting-text-weight: 400,
+      supporting-text-tracking: 0.005em,
+      container-shape: 14px,
+    )
+  );
+
+  .mat-mdc-tooltip-surface {
+    position: relative;
+    max-width: none;
+    overflow: visible;
+    padding: 12px 16px 12px 18px;
+    border: 1px solid var(--bubble-border);
+    border-left: 3px solid #6a17d0;
+    box-shadow:
+      0 10px 28px rgb(26 19 78 / 18%),
+      0 2px 6px rgb(26 19 78 / 10%);
+    text-align: left;
+    white-space: normal;
+
+    // The tail: a rotated square sharing the bubble's fill and border.
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      width: 12px;
+      height: 12px;
+      background: var(--bubble-bg);
+      border: 1px solid var(--bubble-border);
+      transform: translateX(-50%) rotate(45deg);
+    }
+  }
+}
+
+.mat-mdc-tooltip-panel-above .info-bubble {
+  margin-bottom: 10px;
+
+  .mat-mdc-tooltip-surface::after {
+    bottom: -7px;
+    border-top: none;
+    border-left: none;
+  }
+}
+
+.mat-mdc-tooltip-panel-below .info-bubble {
+  margin-top: 10px;
+
+  .mat-mdc-tooltip-surface::after {
+    top: -7px;
+    border-bottom: none;
+    border-right: none;
+  }
 }

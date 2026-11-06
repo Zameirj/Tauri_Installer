@@ -1,9 +1,34 @@
-<header class="bar">
-  <img class="app-mark" src="/logos/caseware-mark.svg" alt="" />
-  <h1>Caseware Installer</h1>
-  @if (appVersion()) {
-    <span class="sub">v{{ appVersion() }}</span>
-  }
+<!-- Dark hero over wire-frames/banner.png, as in wire-frames/Caseware Installer company-branding.png. -->
+<header class="hero">
+  <div class="hero-head">
+    <div class="hero-brand">
+      <!-- One lockup: the logo with "installer" set in its lowercase style (see .hero-brand h1). -->
+      <h1>
+        <img class="hero-logo" src="/logos/caseware-white.png" alt="Caseware" /><span>installer</span>
+      </h1>
+      <p>Get the latest Caseware applications and tools for your organisation.</p>
+    </div>
+    @if (appVersion()) {
+      <span class="app-version">v{{ appVersion() }}</span>
+    }
+  </div>
+
+  <nav class="steps" aria-label="Progress">
+    @for (step of steps; track $index; let i = $index) {
+      <div
+        class="step"
+        [class.active]="i === currentStep()"
+        [class.done]="i < currentStep()"
+        [attr.aria-current]="i === currentStep() ? 'step' : null"
+      >
+        <span class="circle">{{ i + 1 }}</span>
+        <span class="label">{{ step }}</span>
+      </div>
+      @if (i < steps.length - 1) {
+        <span class="step-line" [class.done]="i < currentStep()"></span>
+      }
+    }
+  </nav>
 </header>
 
 @if (availableUpdate(); as update) {
@@ -47,44 +72,29 @@
 }
 
 <main>
-  <div class="top">
-    <nav class="steps" aria-label="Progress">
-      @for (step of steps; track $index; let i = $index) {
-        <div class="step" [class.active]="i === currentStep()" [class.done]="i < currentStep()">
-          <span class="circle">{{ i + 1 }}</span>
-          <span class="label">{{ step }}</span>
-        </div>
-        @if (i < steps.length - 1) {
-          <span class="step-line" [class.done]="i < currentStep()"></span>
-        }
-      }
-    </nav>
-
-    <section class="banner">
-      <!-- The banner is light lavender in both themes, so the dark-text logos are always used. -->
-      <img class="logo" src="/logos/caseware.png" alt="Caseware" />
-      <div class="banner-text">
-        @if (screen() !== 'details' && organisationName()) {
-          <h2>{{ organisationName() }}</h2>
-        } @else {
-          <h2>Caseware Africa, A Division of Adapt IT (Pty) Ltd</h2>
-        }
+  <section class="panel">
+    <!-- The card is light in both themes, so the navy-text logos are always used. -->
+    <div class="brand-row">
+      <img class="logo" src="/logos/caseware-navy.png" alt="Caseware" />
+      <div class="brand-text">
         @if (screen() === 'details') {
-          <p>Enter your download code and email address to see the software available to you.</p>
-        } @else if (screen() === 'install') {
-          <p>Your software has been downloaded. Select the software you would like to install.</p>
+          <h2>Welcome to the Caseware Installer</h2>
+          <p>Enter your download code and email address to access your licensed Caseware software.</p>
         } @else {
-          <p>
-            Select the software you would like to download. Below is a list of software available to
-            you as per your license statement.
-          </p>
+          <h2>{{ organisationName() ?? 'Caseware Africa, A Division of Adapt IT (Pty) Ltd' }}</h2>
+          @if (screen() === 'install') {
+            <p>Your software has been downloaded. Select the software you would like to install.</p>
+          } @else {
+            <p>
+              Select the software you would like to download. Below is a list of software available to
+              you as per your license statement.
+            </p>
+          }
         }
       </div>
       <img class="logo" src="/logos/adaptit-navy.png" alt="Adapt IT" />
-    </section>
-  </div>
+    </div>
 
-  <section class="panel">
     @if (screen() === 'details') {
       <div class="toolbar">
         <span class="spacer"></span>
@@ -97,54 +107,71 @@
         </button>
       </div>
 
-      <div class="content">
-        <h3 class="panel-title">Enter your download details</h3>
+      <!-- Registration, as in wire-frames/registration_page_assets/04_registration_design_reference.png. -->
+      <div class="content register">
+        <div class="register-main">
+          <div class="register-form">
+            <h3 class="panel-title">Enter your download details</h3>
 
-        <form id="details-form" [formGroup]="form" (ngSubmit)="next()" novalidate>
-          <mat-form-field appearance="outline">
-            <mat-label>Download code</mat-label>
-            <input
-              matInput
-              formControlName="downloadCode"
-              placeholder="xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx"
-              autocomplete="off"
-              spellcheck="false"
-              (input)="trimDownloadCode()"
-            />
-            @if (form.controls.downloadCode.hasError('required')) {
-              <mat-error>Enter your download code</mat-error>
-            } @else if (form.controls.downloadCode.hasError('pattern')) {
-              <mat-error>Use the format xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx</mat-error>
-            }
-          </mat-form-field>
+            <form id="details-form" [formGroup]="form" (ngSubmit)="next()" novalidate>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <span matIconPrefix class="glyph field-icon" style="--icon: url(/icons/key.svg)"></span>
+                <mat-label>Download code</mat-label>
+                <input
+                  matInput
+                  formControlName="downloadCode"
+                  placeholder="xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx"
+                  autocomplete="off"
+                  spellcheck="false"
+                  (input)="trimDownloadCode()"
+                />
+                @if (form.controls.downloadCode.hasError('required')) {
+                  <mat-error>Enter your download code</mat-error>
+                } @else if (form.controls.downloadCode.hasError('pattern')) {
+                  <mat-error>Use the format xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx</mat-error>
+                }
+              </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Email</mat-label>
-            <input matInput type="email" formControlName="email" autocomplete="email" />
-            @if (form.controls.email.hasError('required')) {
-              <mat-error>Enter your email address</mat-error>
-            } @else if (form.controls.email.hasError('pattern')) {
-              <mat-error>Enter a valid email address</mat-error>
-            }
-          </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <span matIconPrefix class="glyph field-icon" style="--icon: url(/icons/mail.svg)"></span>
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" autocomplete="email" />
+                @if (form.controls.email.hasError('required')) {
+                  <mat-error>Enter your email address</mat-error>
+                } @else if (form.controls.email.hasError('pattern')) {
+                  <mat-error>Enter a valid email address</mat-error>
+                }
+              </mat-form-field>
 
-          <mat-checkbox formControlName="acceptEula" class="eula">
-            I have read and accept the terms and conditions of the
-            <a href="https://webcontent.casewareafrica.com/CaseWare_Community/My%20Account%20Docs/CWA%20EULA.pdf" (click)="openEula($event)">EULA</a>
-          </mat-checkbox>
+              <mat-checkbox formControlName="acceptEula" class="eula">
+                I have read and accept the terms and conditions of the
+                <a href="https://webcontent.casewareafrica.com/CaseWare_Community/My%20Account%20Docs/CWA%20EULA.pdf" (click)="openEula($event)">EULA</a>
+              </mat-checkbox>
 
-          @if (error()) {
-            <p class="error" role="alert">
-              <mat-icon>error</mat-icon>
-              {{ error() }}
-            </p>
-          }
-        </form>
+              @if (error()) {
+                <p class="error" role="alert">
+                  <mat-icon>error</mat-icon>
+                  {{ error() }}
+                </p>
+              }
+            </form>
+          </div>
 
-        <section class="qr">
-          <img src="caseware-mobile-qr.svg" alt="QR code for the Caseware Africa Mobile app" width="120" height="120" />
-          <p>Scan the code for future product updates!</p>
-        </section>
+          <!-- Artwork from wire-frames/correct-banner.png with its text and sample QR code removed;
+               they are drawn here, with the genuine QR code. -->
+          <section class="notify" aria-labelledby="notify-title">
+            <div class="notify-inner">
+              <div class="notify-text">
+                <h3 id="notify-title">Get the <span>Caseware Notifications App</span></h3>
+                <p>Be the first to receive software updates, new releases, and product announcements.</p>
+              </div>
+              <figure class="notify-qr">
+                <img src="caseware-mobile-qr.svg" alt="QR code to download the Caseware notifications app" />
+                <figcaption>Scan to Download</figcaption>
+              </figure>
+            </div>
+          </section>
+        </div>
       </div>
     } @else {
       <div class="toolbar">
@@ -268,6 +295,8 @@
                               role="img"
                               aria-label="Product description"
                               [matTooltip]="product.description"
+                              matTooltipClass="info-bubble"
+                              matTooltipPosition="above"
                               (click)="$event.preventDefault(); $event.stopPropagation(); info.show()"
                               (keydown.enter)="$event.preventDefault(); info.show()"
                             >info</mat-icon>

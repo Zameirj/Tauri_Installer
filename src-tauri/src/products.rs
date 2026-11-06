@@ -14,8 +14,9 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::applog;
 use crate::update::{download, signed_url};
 
-/// Storage endpoint that signs download links. Same service as the Installer's self-update.
-const SIGNED_URL_ENDPOINT: &str = "https://api.test.casewareafrica.com/api/awsStorage/get-signed-url";
+/// Storage endpoint (production) that signs product download links. The Installer's self-update
+/// uses the same service, configured separately in src/app/update-config.ts.
+const SIGNED_URL_ENDPOINT: &str = "https://api.prod.casewareafrica.com/api/awsStorage/get-signed-url";
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
