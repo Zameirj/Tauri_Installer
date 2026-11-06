@@ -61,6 +61,8 @@ app-root {
         outlined-horizontal-padding: 18px,
         outlined-label-text-size: 15px,
         outlined-label-text-weight: 600,
+        outlined-icon-offset: 0,
+        outlined-icon-spacing: 8px,
       )
     );
 
@@ -74,8 +76,7 @@ app-root {
     }
 
     .glyph {
-      width: 20px;
-      height: 20px;
+      --glyph: 20px;
     }
 
     &.select .glyph {
@@ -94,8 +95,7 @@ app-root {
       color: #fff;
 
       .glyph {
-        width: 14px;
-        height: 14px;
+        --glyph: 14px;
       }
     }
   }
@@ -110,6 +110,8 @@ app-root {
         filled-label-text-color: #fff,
         filled-label-text-size: 15px,
         filled-label-text-weight: 600,
+        filled-icon-offset: 0,
+        filled-icon-spacing: 10px,
       )
     );
 
@@ -120,8 +122,7 @@ app-root {
     }
 
     .glyph {
-      width: 20px;
-      height: 20px;
+      --glyph: 20px;
     }
 
     &:not(:disabled) {
@@ -181,14 +182,15 @@ app-root {
   }
 }
 
-// Outline icons from public/icons, tinted with currentColor through a mask.
-.glyph {
-  display: inline-block;
+// Material icons (<mat-icon class="glyph">), sized per place with --glyph. The doubled class
+// outranks Material's own button and form-field icon sizes, which load after these styles.
+mat-icon.mat-icon.glyph {
+  --glyph: 20px;
   flex: none;
-  width: 20px;
-  height: 20px;
-  background: currentColor;
-  mask: var(--icon) center / contain no-repeat;
+  width: var(--glyph);
+  height: var(--glyph);
+  font-size: var(--glyph);
+  line-height: 1;
   vertical-align: middle;
 }
 
@@ -672,8 +674,7 @@ form {
     }
 
     .glyph {
-      width: 20px;
-      height: 20px;
+      --glyph: 20px;
     }
   }
 
@@ -943,8 +944,7 @@ mat-progress-bar {
   color: #1b7f4b;
 
   .glyph {
-    width: 18px;
-    height: 18px;
+    --glyph: 18px;
   }
 }
 
@@ -1058,9 +1058,10 @@ mat-progress-bar {
   }
 }
 
-.field-icon {
-  width: 20px;
-  height: 20px;
+mat-icon.field-icon.glyph {
+  --glyph: 20px;
+  // Material pads form-field prefix icons by 12px a side; the margin below sets the spacing.
+  padding: 0;
   margin: 0 4px 0 14px;
   color: var(--ink);
 }
@@ -1228,8 +1229,7 @@ mat-progress-bar {
   color: #fff;
 
   .glyph {
-    width: 24px;
-    height: 24px;
+    --glyph: 24px;
   }
 }
 
@@ -1351,8 +1351,7 @@ mat-progress-bar {
   }
 
   .glyph {
-    width: 18px;
-    height: 18px;
+    --glyph: 18px;
   }
 
   .success & {

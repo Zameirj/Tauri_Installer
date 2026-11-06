@@ -34,7 +34,7 @@
 @if (availableUpdate(); as update) {
   <div class="blocker" role="alertdialog" aria-modal="true" aria-labelledby="update-title">
     <div class="blocker-card">
-      <span class="blocker-icon"><span class="glyph" style="--icon: url(/icons/download.svg)"></span></span>
+      <span class="blocker-icon"><mat-icon class="glyph">download</mat-icon></span>
       <h2 id="update-title">Update required</h2>
       <p>
         Caseware Installer <strong>{{ update.version }}</strong> is available. You are on
@@ -51,7 +51,7 @@
         <p class="hint">{{ progressText() }}. The app restarts when it is done.</p>
       } @else if (updateSavedTo()) {
         <p class="ok">
-          <span class="glyph" style="--icon: url(/icons/check.svg)"></span>
+          <mat-icon class="glyph">check</mat-icon>
           Downloaded, but this copy cannot replace itself here.
         </p>
         <p class="hint">Close Caseware Installer and run the new file from: {{ updateSavedTo() }}</p>
@@ -63,7 +63,7 @@
           </p>
         }
         <button mat-flat-button class="cta" type="button" (click)="startUpdate()">
-          <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
+          <mat-icon class="glyph">download</mat-icon>
           {{ updateError() ? 'Try again' : 'Update now' }}
         </button>
       }
@@ -100,7 +100,7 @@
         <span class="spacer"></span>
         <button mat-flat-button class="cta" type="submit" form="details-form" [disabled]="loading() || form.invalid">
           Next
-          <span class="glyph" style="--icon: url(/icons/arrow-right.svg)"></span>
+          <mat-icon class="glyph" iconPositionEnd>arrow_forward</mat-icon>
         </button>
       </div>
 
@@ -112,7 +112,7 @@
 
             <form id="details-form" [formGroup]="form" (ngSubmit)="next()" novalidate>
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <span matIconPrefix class="glyph field-icon" style="--icon: url(/icons/key.svg)"></span>
+                <mat-icon matIconPrefix class="glyph field-icon">vpn_key</mat-icon>
                 <mat-label>Download code</mat-label>
                 <input
                   matInput
@@ -130,7 +130,7 @@
               </mat-form-field>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <span matIconPrefix class="glyph field-icon" style="--icon: url(/icons/mail.svg)"></span>
+                <mat-icon matIconPrefix class="glyph field-icon">mail_outline</mat-icon>
                 <mat-label>Email</mat-label>
                 <input matInput type="email" formControlName="email" autocomplete="email" />
                 @if (form.controls.email.hasError('required')) {
@@ -173,7 +173,7 @@
     } @else {
       <div class="toolbar">
         <button mat-stroked-button class="pill" type="button" (click)="back()">
-          <span class="glyph" style="--icon: url(/icons/arrow-left.svg)"></span>
+          <mat-icon class="glyph">arrow_back</mat-icon>
           Back
         </button>
         <span class="spacer"></span>
@@ -187,7 +187,7 @@
               (mousedown)="$event.preventDefault()"
               (click)="openSearch()"
             >
-              <span class="glyph" style="--icon: url(/icons/search.svg)"></span>
+              <mat-icon class="glyph">search</mat-icon>
             </button>
             <input
               #searchInput
@@ -210,22 +210,22 @@
           </div>
         }
         <button mat-stroked-button class="pill accent" type="button" (click)="selectAll()">
-          <span class="badge"><span class="glyph" style="--icon: url(/icons/check.svg)"></span></span>
+          <span class="badge"><mat-icon class="glyph">check</mat-icon></span>
           Select all
         </button>
         <button mat-stroked-button class="pill select" type="button" (click)="selectNone()">
-          <span class="glyph" style="--icon: url(/icons/minus-circle.svg)"></span>
+          <mat-icon class="glyph">remove_circle_outline</mat-icon>
           Select none
         </button>
         @if (screen() === 'install') {
           <button mat-flat-button class="cta" type="button" [disabled]="selectedCount() === 0" (click)="install()">
-            <mat-icon>install_desktop</mat-icon>
+            <mat-icon class="glyph">install_desktop</mat-icon>
             Install ({{ selectedCount() }})
           </button>
         } @else if (offerInstall()) {
           <button mat-flat-button class="cta" type="button" [disabled]="downloading()" (click)="goToInstall()">
             Next ({{ downloadedCount() }})
-            <span class="glyph" style="--icon: url(/icons/arrow-right.svg)"></span>
+            <mat-icon class="glyph" iconPositionEnd>arrow_forward</mat-icon>
           </button>
         } @else {
           <button
@@ -235,7 +235,7 @@
             [disabled]="selectedCount() === 0 || downloading()"
             (click)="download()"
           >
-            <span class="glyph" style="--icon: url(/icons/download.svg)"></span>
+            <mat-icon class="glyph">download</mat-icon>
             Download ({{ selectedCount() }})
           </button>
         }
@@ -347,7 +347,7 @@
     >
       <span class="toast-icon" aria-hidden="true">
         @if (t.kind === 'success') {
-          <span class="glyph" style="--icon: url(/icons/check.svg)"></span>
+          <mat-icon class="glyph">check</mat-icon>
         } @else {
           <mat-icon>info</mat-icon>
         }
