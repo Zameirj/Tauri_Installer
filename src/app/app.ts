@@ -1,4 +1,5 @@
 import {
+  ApplicationRef,
   Component,
   DestroyRef,
   ElementRef,
@@ -17,8 +18,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -44,6 +43,19 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 
 /** Steps shown in the header. Only the first two screens exist so far. */
 const STEPS = ['Verification', 'My Software', 'Install/Distribution'];
+
+type Screen = 'details' | 'products' | 'install';
+
+/** A notification: a short message, an optional detail line (e.g. a folder) and its kind. */
+interface Toast {
+  id: number;
+  message: string;
+  detail?: string;
+  kind: 'success' | 'info';
+}
+
+/** How long Next waits before covering the window with the loading screen. */
+const LOADER_DELAY = 200;
 
 /** Order in which the type groups appear on screen 2. Unknown types follow at the end. */
 const PRODUCT_TYPE_ORDER = ['cwi', 'other', 'tmpl', 'custom'];
@@ -98,14 +110,13 @@ const MIN_FIT = 0.6;
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
   ],
   templateUrl: './app.html',
 })
 export class App {
   private readonly api = inject(ApiService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly appRef = inject(ApplicationRef);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Window height the registration screen needs at full size, measured by fitToWindow(). */
@@ -147,10 +158,22 @@ export class App {
     return p.total ? `${mb(p.downloaded)} of ${mb(p.total)} MB` : `${mb(p.downloaded)} MB`;
   });
 
-  readonly screen = signal<'details' | 'products' | 'install'>('details');
+  readonly screen = signal<Screen>('details');
   readonly steps = STEPS;
   readonly currentStep = computed(() => (this.screen() === 'details' ? 0 : this.screen() === 'products' ? 1 : 2));
   readonly loading = signal(false);
+  /**
+   * The notification at the bottom of the window (one at a time; a new one replaces it). Our own
+   * rather than MatSnackBar, which removes itself 200ms into closing and can't fade out slowly.
+   * Held in a list so `@for ... track id` fades the old one out while a replacement fades in.
+   */
+  readonly toasts = signal<readonly Toast[]>([]);
+  private toastId = 0;
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  private toastDuration = 0;
+
+  /** The full-window loading screen while Next waits (see next()). */
+  readonly showLoader = signal(false);
   readonly error = signal<string | null>(null);
   readonly products = signal<OrgProduct[]>([]);
   readonly selected = signal<ReadonlySet<string>>(new Set());
@@ -387,15 +410,25 @@ export class App {
     }
 
     this.loading.set(true);
+    // The full loading screen appears only if the wait passes LOADER_DELAY, so a quick reply
+    // goes straight to the next screen without flashing it.
+    const loaderTimer = setTimeout(() => this.showLoader.set(true), LOADER_DELAY);
+    const done = () => {
+      clearTimeout(loaderTimer);
+      this.showLoader.set(false);
+      this.loading.set(false);
+    };
     try {
       const products = await this.api.getOrgProducts(this.form.controls.downloadCode.value.trim());
-      this.products.set(products);
-      this.selected.set(new Set());
-      this.screen.set('products');
+      // The loader starts fading out in the same frame the products screen appears.
+      this.changeScreen('products', () => {
+        this.products.set(products);
+        this.selected.set(new Set());
+        done();
+      });
     } catch (err) {
       this.error.set(String(err));
-    } finally {
-      this.loading.set(false);
+      done();
     }
   }
 
@@ -409,11 +442,33 @@ export class App {
   back(): void {
     this.error.set(null);
     if (this.screen() === 'install') {
-      this.selected.set(new Set([...this.savedSelection].filter((id) => !this.downloadedIds().has(id))));
-      this.screen.set('products');
+      this.changeScreen('products', () =>
+        this.selected.set(new Set([...this.savedSelection].filter((id) => !this.downloadedIds().has(id)))),
+      );
     } else {
-      this.screen.set('details');
+      this.changeScreen('details');
     }
+  }
+
+  /**
+   * Moves to another screen with a soft transition of the card (View Transitions API, styled in
+   * styles.scss): the card's frame cross-fades, the old content fades out and the new content
+   * fades in. `update` holds the other state changes that belong to the new screen,
+   * so they land in the same frame. The hero is not animated by it, so the steps run their own
+   * CSS transitions. Instant under prefers-reduced-motion.
+   */
+  private changeScreen(next: Screen, update?: () => void): void {
+    const apply = () => {
+      update?.();
+      this.screen.set(next);
+      // Render now, so the transition captures the finished new screen.
+      this.appRef.tick();
+    };
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      apply();
+      return;
+    }
+    document.startViewTransition(apply);
   }
 
   /** Reads myapps.json: every product downloaded and waiting for install. */
@@ -422,13 +477,73 @@ export class App {
     this.downloadedIds.set(new Set(apps.map((a) => a.productId)));
   }
 
+  /**
+   * Screen 2 with nothing new picked but products already downloaded: the toolbar offers
+   * Next (n) instead of Download (0), which goes straight to step 3.
+   */
+  readonly offerInstall = computed(
+    () => this.screen() === 'products' && this.selectedCount() === 0 && this.downloadedCount() > 0,
+  );
+
+  /** Downloaded products that are in this download code's list. */
+  readonly downloadedCount = computed(
+    () => this.products().filter((p) => this.downloadedIds().has(p.productId)).length,
+  );
+
+  /**
+   * Text for the info popover. Downloaded rows also get the "Already downloaded" label (drawn by
+   * the `downloaded` bubble class), so one without a description still has something to say.
+   */
+  infoText(product: OrgProduct): string {
+    if (product.description) return product.description;
+    return this.isLocked(product.productId)
+      ? 'You have already downloaded this product, so there is no need to download it again.'
+      : '';
+  }
+
+  /** Opens step 3 with every downloaded product listed and selected. */
+  goToInstall(): void {
+    this.savedSelection = this.selected();
+    this.changeScreen('install', () => {
+      this.selected.set(
+        new Set(this.products().map((p) => p.productId).filter((id) => this.downloadedIds().has(id))),
+      );
+      this.closeSearch();
+    });
+  }
+
+  /** Shows a notification; it closes itself after `duration` ms, or with OK. */
+  notify(message: string, opts: { detail?: string; kind?: Toast['kind']; duration?: number } = {}): void {
+    this.toasts.set([{ id: ++this.toastId, message, detail: opts.detail, kind: opts.kind ?? 'info' }]);
+    this.toastDuration = opts.duration ?? 4000;
+    this.startToastTimer(this.toastDuration);
+  }
+
+  dismissToast(): void {
+    clearTimeout(this.toastTimer);
+    this.toasts.set([]);
+  }
+
+  /** Hovering keeps the notification open; leaving gives a little more time to finish reading. */
+  holdToast(): void {
+    clearTimeout(this.toastTimer);
+  }
+
+  releaseToast(): void {
+    this.startToastTimer(Math.min(this.toastDuration, 2500));
+  }
+
+  private startToastTimer(ms: number): void {
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => this.toasts.set([]), ms);
+  }
+
   /** Step 3 install action. The install logic is not defined yet. */
   install(): void {
-    this.snackBar.open(
-      `${this.selectedCount()} product(s) selected. Install is not built yet.`,
-      'OK',
-      { duration: 4000 },
-    );
+    const n = this.selectedCount();
+    this.notify("Install isn't built yet", {
+      detail: `${n} ${n === 1 ? 'product' : 'products'} selected.`,
+    });
   }
 
   /** Friendly badge text for the API's product `type`; unknown values are shown as-is. */
@@ -567,17 +682,19 @@ export class App {
       this.extracting.set(true);
       this.downloadProgress.set(null);
       const extracted = await this.api.extractProducts(items);
-      this.snackBar.open(
-        `Downloaded ${files.length} and extracted ${extracted.length} product(s) to ${folder}`,
-        'OK',
-        { duration: 6000 },
+      const n = files.length;
+      this.notify(
+        `${n} ${n === 1 ? 'product' : 'products'} downloaded` +
+          (extracted.length === n ? ' and extracted' : `, ${extracted.length} extracted`),
+        { kind: 'success', detail: `Saved to ${folder}`, duration: 6000 },
       );
       // Step 3: every product waiting for install (from myapps.json) is listed and selected.
       this.savedSelection = this.selected();
       await this.loadDownloaded();
-      this.selected.set(new Set(this.downloadedIds()));
-      this.closeSearch();
-      this.screen.set('install');
+      this.changeScreen('install', () => {
+        this.selected.set(new Set(this.downloadedIds()));
+        this.closeSearch();
+      });
     } catch (e) {
       this.downloadError.set(String(e));
     } finally {

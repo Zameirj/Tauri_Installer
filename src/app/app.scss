@@ -24,11 +24,23 @@ app-root {
   --step-gradient: linear-gradient(180deg, #ff5a47, #f02a60);
   --done-gradient: linear-gradient(90deg, #f03ba1, #f0548f 50%, #f08576);
   --card: #f2f3fd;
-  --row: linear-gradient(180deg, #fbfbff, #f4f5fd);
+  // Software list: periwinkle rows with blue ticks, lavender licence pills, red "New!" chip.
+  --row: linear-gradient(180deg, #f9fafe, #e3e6fb);
+  --row-hover: linear-gradient(180deg, #fff, #eceefd);
+  --row-selected-border: #8a9ee8;
+  // Lighter than the screenshot's wash, but still a step below the rows' lower edge (#e3e6fb)
+  // so the white-topped rows lift off it.
+  // Already-downloaded rows: green means done.
+  --done: #1e9e5b;
+  --done-row: linear-gradient(180deg, #f5fcf8, #e2f3e9);
+  --done-border: #a8dcbd;
+  --list-bg:linear-gradient(90deg, #c7cdef 0%, #d1d5f4 50%, #dbdef8 100%);
+  --tick: #315bea;
+  --new-red: #e8202a;
   --border: #dcdcee;
   --divider: #d1d0ea;
   --card-shadow: 0 24px 60px rgb(24 20 90 / 28%);
-  --row-shadow: 0 2px 8px rgb(40 40 120 / 10%);
+  --row-shadow: 0 3px 10px rgb(50 60 150 / 16%);
   --pill-shadow: 0 2px 6px rgb(40 35 110 / 8%);
 
   position: relative;
@@ -118,10 +130,21 @@ app-root {
     }
   }
 
-  .list mat-checkbox {
+  // Software list ticks are blue; the extra `.panel` makes this beat the panel's violet below.
+  .panel .list mat-checkbox {
     @include mat.checkbox-overrides(
       (
         state-layer-size: 34px,
+        unselected-icon-color: #49454e,
+        unselected-hover-icon-color: var(--tick),
+        unselected-focus-icon-color: var(--tick),
+        selected-icon-color: var(--tick),
+        selected-focus-icon-color: var(--tick),
+        selected-hover-icon-color: var(--tick),
+        selected-pressed-icon-color: var(--tick),
+        selected-focus-state-layer-color: var(--tick),
+        selected-hover-state-layer-color: var(--tick),
+        selected-pressed-state-layer-color: var(--tick),
       )
     );
   }
@@ -275,6 +298,21 @@ app-root {
   background: linear-gradient(180deg, rgb(44 64 126 / 55%), rgb(20 36 96 / 60%));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
   backdrop-filter: blur(6px);
+
+  /*
+   * Step change as one continuous, overlapping movement: the step being left fades and eases
+   * down while the line starts to fill, and the next circle begins lighting before the line has
+   * quite arrived, so nothing waits on anything else. Soft ease-in-out curves, no overshoot.
+   * Going back runs the same way, the line draining.
+   */
+  --step-release: 420ms;
+  --step-line-time: 820ms;
+  --step-line-delay: 80ms;
+  --step-arrive: 520ms; // when the next circle starts lighting, as the line nears it
+  --step-light: 640ms;
+  --ease-release: cubic-bezier(0.4, 0, 0.6, 1); // gentle ease-in-out
+  --ease-travel: cubic-bezier(0.65, 0, 0.35, 1); // smooth ease-in-out
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1); // long, soft ease-out
 }
 
 .step {
@@ -284,6 +322,8 @@ app-root {
   gap: 12px;
 
   .circle {
+    position: relative;
+    isolation: isolate;
     display: grid;
     place-items: center;
     box-sizing: border-box;
@@ -293,21 +333,58 @@ app-root {
     border-radius: 50%;
     font: var(--mat-sys-title-medium);
     font-weight: 600;
+    transition: box-shadow var(--step-release) var(--ease-release);
+
+    // The coral fill is its own layer so it can grow and fade (gradients can't transition).
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: 50%;
+      background: var(--step-gradient);
+      opacity: 0;
+      transform: scale(0.8);
+      transition:
+        opacity var(--step-release) var(--ease-release),
+        transform var(--step-release) var(--ease-release);
+    }
   }
 
+  // The label reserves its bold width (a hidden bold copy from data-label), so turning bold
+  // doesn't nudge the line and circles sideways mid-animation.
   .label {
+    display: inline-flex;
+    flex-direction: column;
     font: var(--mat-sys-title-medium);
     font-size: 16px;
     white-space: nowrap;
+
+    &::after {
+      content: attr(data-label);
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      font-weight: 700;
+      pointer-events: none;
+    }
   }
 
   // The current step is a glowing coral circle with a bold label.
   &.active {
     .circle {
-      background: var(--step-gradient);
       box-shadow:
         0 0 0 3px rgb(255 84 96 / 35%),
         0 0 18px rgb(255 60 96 / 85%);
+      transition: box-shadow 900ms var(--ease-settle) var(--step-arrive);
+
+      &::before {
+        opacity: 1;
+        transform: scale(1);
+        transition:
+          opacity var(--step-light) var(--ease-release) var(--step-arrive),
+          transform var(--step-light) var(--ease-settle) var(--step-arrive);
+      }
     }
 
     .label {
@@ -316,8 +393,10 @@ app-root {
   }
 }
 
-// Lines into completed steps are pink-to-coral; lines ahead are pale lavender.
+// Lines into completed steps are pink-to-coral; lines ahead are pale lavender. The coral fill
+// is a layer revealed left to right (clip-path keeps the gradient still while it grows).
 .step-line {
+  position: relative;
   flex: 0 1 150px;
   min-width: 24px;
   height: 4px;
@@ -325,10 +404,37 @@ app-root {
   border-radius: 2px;
   background: #c3cbf0;
   box-shadow: 0 0 8px rgb(195 203 240 / 45%);
+  transition: box-shadow var(--step-line-time) var(--ease-travel);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--done-gradient);
+    clip-path: inset(0 100% 0 0 round 2px);
+    // Draining back: the same smooth curve, a touch shorter than filling.
+    transition: clip-path 700ms var(--ease-travel);
+  }
 
   &.done {
-    background: var(--done-gradient);
     box-shadow: 0 0 8px rgb(240 70 140 / 45%);
+    transition: box-shadow var(--step-line-time) var(--ease-travel) var(--step-line-delay);
+
+    &::after {
+      clip-path: inset(0 0 0 0 round 2px);
+      // Filling: starts almost with the release, so the two overlap.
+      transition: clip-path var(--step-line-time) var(--ease-travel) var(--step-line-delay);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step .circle,
+  .step .circle::before,
+  .step-line,
+  .step-line::after {
+    transition: none !important;
   }
 }
 
@@ -356,6 +462,18 @@ main {
   background: var(--card);
   box-shadow: var(--card-shadow);
   color: var(--ink);
+  // Screen changes cross-fade the card and slide its content (App.changeScreen, styles.scss).
+  view-transition-name: panel;
+
+  .content {
+    view-transition-name: panel-content;
+  }
+
+  // Screens 2 and 3: the toolbar, list and summary sit on a lavender wash, deeper on the left,
+  // lighter on the right. The brand row keeps its own light background.
+  &.software {
+    background: var(--list-bg);
+  }
 }
 
 // Logos, organisation and instructions across the top of the card, with a soft lilac
@@ -613,7 +731,7 @@ form {
     align-items: center;
     gap: 12px;
     padding: 1px 14px 1px 8px;
-    border: 1px solid #fff;
+    border: 1px solid #fafbfe;
     border-radius: 12px;
     background: var(--row);
     box-shadow: var(--row-shadow);
@@ -622,12 +740,12 @@ form {
       box-shadow 120ms;
 
     &:hover {
-      background: #fff;
-      box-shadow: 0 4px 14px rgb(40 40 120 / 14%);
+      background: var(--row-hover);
+      box-shadow: 0 5px 16px rgb(50 60 150 / 22%);
     }
 
     &.selected {
-      border-color: rgb(106 23 208 / 22%);
+      border-color: var(--row-selected-border);
     }
 
     &.match {
@@ -737,8 +855,8 @@ form {
   white-space: nowrap;
 
   &.new {
-    background: linear-gradient(90deg, #ff5a52, #f43c56);
-    box-shadow: 0 2px 6px rgb(244 60 86 / 30%);
+    background: var(--new-red);
+    box-shadow: 0 2px 6px rgb(232 32 42 / 28%);
   }
 }
 
@@ -758,15 +876,14 @@ form {
   max-width: 60%;
 }
 
-// Licence tags, as in the company-branding wireframe: white fading to a hint of lavender, with a
-// soft periwinkle outline.
+// Licence tags: flat lavender pills with a soft violet outline and dark slate text.
 .tag {
   padding: 4px 14px;
-  border: 1.5px solid #a5a8d6;
+  border: 1.5px solid #c4b2fb;
   border-radius: 999px;
-  background: linear-gradient(180deg, #fbfbff 0%, #f3f5fd 45%, #e8ecfa 100%);
-  box-shadow: 0 2px 6px rgb(60 60 150 / 10%);
-  color: var(--ink);
+  background: #e6dfff;
+  box-shadow: 0 1px 3px rgb(90 70 180 / 10%);
+  color: #2f3358;
   font: var(--mat-sys-label-large);
   font-size: 13px;
   font-weight: 600;
@@ -781,8 +898,9 @@ form {
 }
 
 .summary {
-  margin: 0;
-  padding: 8px 32px 14px;
+  margin: 0 24px;
+  padding: 8px 8px 14px;
+  border-top: 1px solid rgb(255 255 255 / 45%);
   color: var(--ink);
   font: var(--mat-sys-body-large);
   font-size: 15px;
@@ -838,16 +956,46 @@ mat-progress-bar {
   color: var(--violet);
   font-size: 18px;
   cursor: help;
+  // A disabled mat-checkbox (downloaded rows) sets pointer-events: none on its whole host, label
+  // included, which would block the tooltip. Re-enable them on the icon; its click handler
+  // stops the click from reaching the checkbox.
+  pointer-events: auto;
 
   .match & {
     color: #fff;
   }
 }
 
-// Rows already downloaded (myapps.json) stay ticked but can't be picked again.
+// Rows already downloaded (myapps.json) stay ticked but can't be picked again. They read as
+// "done", not "unavailable": a soft mint row with a green tick and full-strength text, instead
+// of Material's greyed-out disabled look.
 .list li.locked {
-  background: rgb(255 255 255 / 55%);
-  box-shadow: none;
+  border-color: var(--done-border);
+  box-shadow: 0 2px 6px rgb(30 120 80 / 12%);
+  cursor: default;
+
+  &:not(.match),
+  &:not(.match):hover {
+    background: var(--done-row);
+  }
+
+  .panel & mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        disabled-label-color: var(--ink),
+        disabled-selected-icon-color: var(--done),
+        disabled-selected-checkmark-color: #fff,
+      )
+    );
+  }
+
+  &.match mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        disabled-label-color: #fff,
+      )
+    );
+  }
 }
 
 /*
@@ -1124,5 +1272,145 @@ mat-progress-bar {
 
   .logo {
     height: 48px;
+  }
+}
+
+/*
+ * Notifications (App.notify): a clean white card in the installer's palette, bottom centre, over
+ * everything but the loader and the update blocker. A coloured icon says what kind it is: green
+ * tick for success (the same green as downloaded rows), violet info otherwise. It fades in with
+ * a slight rise and fades out smoothly; a replacement fades in while the old one fades out.
+ */
+.toasts {
+  position: fixed;
+  right: 0;
+  bottom: 24px;
+  left: 0;
+  z-index: 950;
+  display: grid;
+  justify-items: center;
+  padding: 0 16px;
+  pointer-events: none;
+
+  // A replacement and the one leaving share the same spot.
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(640px, 100%);
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff, #f7f7fe);
+  box-shadow:
+    0 14px 36px rgb(24 20 90 / 22%),
+    0 2px 8px rgb(24 20 90 / 10%);
+  color: var(--ink);
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 420ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  &.toast-leave {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 360ms cubic-bezier(0.4, 0, 0.6, 1),
+      transform 360ms cubic-bezier(0.4, 0, 0.6, 1);
+  }
+}
+
+.toast-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgb(106 23 208 / 10%);
+  color: var(--violet);
+
+  mat-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+  }
+
+  .glyph {
+    width: 18px;
+    height: 18px;
+  }
+
+  .success & {
+    background: var(--done);
+    box-shadow: 0 3px 10px rgb(30 158 91 / 32%);
+    color: #fff;
+  }
+}
+
+.toast-text {
+  min-width: 0;
+}
+
+.toast-message {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.toast-detail {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font: var(--mat-sys-body-medium);
+  font-size: 13px;
+  line-height: 18px;
+  // Folder paths have few spaces; let them break anywhere rather than overflow.
+  overflow-wrap: anywhere;
+}
+
+.toast-ok {
+  flex: none;
+  margin-left: 8px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--violet);
+  font: var(--mat-sys-label-large);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms;
+
+  &:hover {
+    background: rgb(106 23 208 / 9%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.toast-leave {
+    transition: none;
   }
 }

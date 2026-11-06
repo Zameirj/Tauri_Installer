@@ -22,7 +22,7 @@
         [attr.aria-current]="i === currentStep() ? 'step' : null"
       >
         <span class="circle">{{ i + 1 }}</span>
-        <span class="label">{{ step }}</span>
+        <span class="label" [attr.data-label]="step">{{ step }}</span>
       </div>
       @if (i < steps.length - 1) {
         <span class="step-line" [class.done]="i < currentStep()"></span>
@@ -72,7 +72,7 @@
 }
 
 <main>
-  <section class="panel">
+  <section class="panel" [class.software]="screen() !== 'details'">
     <!-- The card is light in both themes, so the navy-text logos are always used. -->
     <div class="brand-row">
       <img class="logo" src="/logos/caseware-navy.png" alt="Caseware" />
@@ -98,9 +98,6 @@
     @if (screen() === 'details') {
       <div class="toolbar">
         <span class="spacer"></span>
-        @if (loading()) {
-          <mat-progress-spinner mode="indeterminate" diameter="24" />
-        }
         <button mat-flat-button class="cta" type="submit" form="details-form" [disabled]="loading() || form.invalid">
           Next
           <span class="glyph" style="--icon: url(/icons/arrow-right.svg)"></span>
@@ -225,6 +222,11 @@
             <mat-icon>install_desktop</mat-icon>
             Install ({{ selectedCount() }})
           </button>
+        } @else if (offerInstall()) {
+          <button mat-flat-button class="cta" type="button" [disabled]="downloading()" (click)="goToInstall()">
+            Next ({{ downloadedCount() }})
+            <span class="glyph" style="--icon: url(/icons/arrow-right.svg)"></span>
+          </button>
         } @else {
           <button
             mat-flat-button
@@ -287,15 +289,17 @@
                           @if (product.notification) {
                             <span class="chip new">{{ product.notification }}</span>
                           }
-                          @if (product.description) {
+                          @if (product.description || isLocked(product.productId)) {
                             <mat-icon
                               #info="matTooltip"
                               class="info"
                               tabindex="0"
                               role="img"
-                              aria-label="Product description"
-                              [matTooltip]="product.description"
-                              matTooltipClass="info-bubble"
+                              [attr.aria-label]="
+                                isLocked(product.productId) ? 'Product description, already downloaded' : 'Product description'
+                              "
+                              [matTooltip]="infoText(product)"
+                              [matTooltipClass]="isLocked(product.productId) ? 'info-bubble downloaded' : 'info-bubble'"
                               matTooltipPosition="above"
                               (click)="$event.preventDefault(); $event.stopPropagation(); info.show()"
                               (keydown.enter)="$event.preventDefault(); info.show()"
@@ -330,3 +334,44 @@
   </section>
 
 </main>
+
+<!-- Notifications: one at a time, bottom centre, fading in and out (see App.notify). -->
+<div class="toasts" aria-live="polite">
+  @for (t of toasts(); track t.id) {
+    <div
+      class="toast"
+      [class.success]="t.kind === 'success'"
+      animate.leave="toast-leave"
+      (mouseenter)="holdToast()"
+      (mouseleave)="releaseToast()"
+    >
+      <span class="toast-icon" aria-hidden="true">
+        @if (t.kind === 'success') {
+          <span class="glyph" style="--icon: url(/icons/check.svg)"></span>
+        } @else {
+          <mat-icon>info</mat-icon>
+        }
+      </span>
+      <div class="toast-text">
+        <p class="toast-message">{{ t.message }}</p>
+        @if (t.detail) {
+          <p class="toast-detail">{{ t.detail }}</p>
+        }
+      </div>
+      <button class="toast-ok" type="button" (click)="dismissToast()">OK</button>
+    </div>
+  }
+</div>
+
+<!--
+  While Next checks the download code: the start-up loading screen again (its .boot styles are
+  inline in index.html, so it looks identical), shown once the wait passes 200ms so quick replies
+  don't flash it, and faded out when the products screen is ready.
+-->
+@if (showLoader()) {
+  <div class="boot boot-overlay" role="status" aria-live="polite" animate.leave="boot-leave">
+    <img src="/logos/caseware-white.png" alt="Caseware" />
+    <div class="boot-bar" aria-hidden="true"></div>
+    <p>Finding your software...</p>
+  </div>
+}

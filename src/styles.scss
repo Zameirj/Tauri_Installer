@@ -43,6 +43,49 @@ body {
 }
 
 /*
+ * Screen changes (App.changeScreen wraps them in document.startViewTransition). The page itself
+ * (root) is not animated, so the hero stays put and the steps run their own CSS transitions.
+ * The card (panel) cross-fades its frame, header and toolbar, and its content (panel-content)
+ * fades: the old content fades out quickly, then the new content fades in slowly. No movement.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(panel),
+::view-transition-group(panel-content) {
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+::view-transition-old(panel),
+::view-transition-new(panel) {
+  animation-duration: 480ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+::view-transition-old(panel-content) {
+  animation: page-out 280ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(panel-content) {
+  animation: page-in 600ms cubic-bezier(0.4, 0, 0.2, 1) 160ms both;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
  * Product description popover (matTooltipClass="info-bubble" on the .info icon). The tooltip
  * renders in the CDK overlay, outside app-root, so it is styled here. A white speech bubble with
  * a violet accent and a tail pointing at the icon; Material adds the
@@ -94,6 +137,35 @@ body {
       border: 1px solid var(--bubble-border);
       transform: translateX(-50%) rotate(45deg);
     }
+  }
+}
+
+// Downloaded products (locked rows): a small green "Already downloaded" label after the
+// description, and a green accent, matching the row's mint "done" look. ::after is the tail, so
+// the label is ::before, moved below the text by laying the surface out as a column.
+.info-bubble.downloaded .mat-mdc-tooltip-surface {
+  display: flex;
+  flex-direction: column;
+  border-left-color: #1e9e5b;
+
+  &::before {
+    content: '\2713\00a0 Already downloaded';
+    // Material uses this ::before as an absolutely placed, full-size forced-colours outline;
+    // put it back in the flow at its own size so it doesn't cover the description.
+    position: static;
+    width: auto;
+    height: auto;
+    order: 1;
+    align-self: flex-start;
+    margin-top: 8px;
+    padding: 2px 10px;
+    border: 1px solid #a8dcbd;
+    border-radius: 999px;
+    background: #e2f3e9;
+    color: #146c3e;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 18px;
   }
 }
 
