@@ -51,5 +51,6 @@ Thumbs.db
 /src-tauri/target
 /src-tauri/gen
 
-# Design asset archives (the extracted folder is committed)
-/wire-frames/*.zip
+# Design references and source art: kept locally, not in the repository. The app uses its own
+# exports in public/ (see the setup-installer-ui skill).
+/wire-frames/
