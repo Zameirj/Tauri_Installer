@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice">
+  <!-- Bottom glow from wire-frames/Installer_Design_Assets/backgrounds/hybrid-bottom-wave-texture.png:
+       a large violet particle mound in the centre with a glowing pink-white rim, and a smaller hump to the left. -->
+  <defs>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a4dff" stop-opacity="0.85"/>
+      <stop offset="0.6" stop-color="#3a2fc0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#1c1a78" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b44dff" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#c06bff"/>
+      <stop offset="0.5" stop-color="#ffffff"/>
+      <stop offset="0.72" stop-color="#ff7ad9"/>
+      <stop offset="1" stop-color="#b44dff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="haze" cx="0.62" cy="0.55" r="0.5">
+      <stop offset="0" stop-color="#e070ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#e070ff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="7" height="7" patternUnits="userSpaceOnUse">
+      <circle cx="3.5" cy="3.5" r="1.1" fill="#e6dcff" fill-opacity="0.55"/>
+    </pattern>
+    <filter id="glow" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="30"/></filter>
+    <clipPath id="moundClip"><path id="mound" d="M 0 400 L 0 392 C 160 392, 250 310, 360 300 C 450 292, 520 360, 600 352 C 690 340, 760 110, 900 92 C 1040 76, 1110 270, 1220 340 C 1300 385, 1380 398, 1440 400 Z"/></clipPath>
+  </defs>
+
+  <ellipse cx="900" cy="300" rx="520" ry="200" fill="url(#haze)" filter="url(#soft)"/>
+  <g clip-path="url(#moundClip)">
+    <rect width="1440" height="400" fill="url(#fill)"/>
+    <rect width="1440" height="400" fill="url(#dots)"/>
+  </g>
+  <path d="M 0 392 C 160 392, 250 310, 360 300 C 450 292, 520 360, 600 352 C 690 340, 760 110, 900 92 C 1040 76, 1110 270, 1220 340 C 1300 385, 1380 398, 1440 400" fill="none" stroke="url(#rim)" stroke-width="8" filter="url(#glow)"/>
+  <path d="M 0 392 C 160 392, 250 310, 360 300 C 450 292, 520 360, 600 352 C 690 340, 760 110, 900 92 C 1040 76, 1110 270, 1220 340 C 1300 385, 1380 398, 1440 400" fill="none" stroke="url(#rim)" stroke-width="2"/>
+</svg>

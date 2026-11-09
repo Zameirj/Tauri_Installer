@@ -1,26 +1,442 @@
-:host {
+@use '@angular/material' as mat;
+
+/*
+ * App styles. Loaded globally from styles.scss (not as component styles) because the
+ * design overrides Material controls and is larger than the 4 kB component style budget.
+ * Everything is scoped under app-root.
+ */
+
+app-root {
+  /*
+   * Company branding (wire-frames/Caseware Installer company-branding.png), the same in both
+   * themes: a dark hero over wire-frames/banner.png with white text, then one light card
+   * (color-scheme: light) over wire-frames/background.png. Colours are sampled from the
+   * wireframe: coral for the main action, violet for selection, indigo for headings.
+   */
+  --ink: #0d0b2a;
+  --ink-soft: #2d2f4a;
+  --muted: #5b5a70;
+  --indigo: #100049;
+  --violet: #6a17d0;
+  --violet-deep: #410e94;
+  --coral: #f0305d;
+  --coral-gradient: linear-gradient(90deg, #ff5a4f 0%, #f0305d 55%, #c21c6b 100%);
+  --step-gradient: linear-gradient(180deg, #ff5a47, #f02a60);
+  --done-gradient: linear-gradient(90deg, #f03ba1, #f0548f 50%, #f08576);
+  --card: #f2f3fd;
+  // Software list: periwinkle rows with blue ticks, lavender licence pills, red "New!" chip.
+  --row: linear-gradient(180deg, #f9fafe, #e3e6fb);
+  --row-hover: linear-gradient(180deg, #fff, #eceefd);
+  --row-selected-border: #8a9ee8;
+  // Lighter than the screenshot's wash, but still a step below the rows' lower edge (#e3e6fb)
+  // so the white-topped rows lift off it.
+  // Already-downloaded rows: green means done.
+  --done: #1e9e5b;
+  --done-row: linear-gradient(180deg, #f5fcf8, #e2f3e9);
+  --done-border: #a8dcbd;
+  --list-bg:linear-gradient(90deg, #c7cdef 0%, #d1d5f4 50%, #dbdef8 100%);
+  --tick: #315bea;
+  --new-red: #e8202a;
+  --border: #dcdcee;
+  --divider: #d1d0ea;
+  --card-shadow: 0 24px 60px rgb(24 20 90 / 28%);
+  --row-shadow: 0 3px 10px rgb(50 60 150 / 16%);
+  --pill-shadow: 0 2px 6px rgb(40 35 110 / 8%);
+
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100vh;
-}
+  color: var(--ink);
 
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  background: var(--mat-sys-surface-container);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  // White outlined pills (Back, Select all, Select none).
+  .pill {
+    @include mat.button-overrides(
+      (
+        outlined-container-shape: 999px,
+        outlined-container-height: 40px,
+        outlined-outline-color: var(--border),
+        outlined-label-text-color: var(--ink),
+        outlined-horizontal-padding: 18px,
+        outlined-label-text-size: 15px,
+        outlined-label-text-weight: 600,
+        outlined-icon-offset: 0,
+        outlined-icon-spacing: 8px,
+      )
+    );
 
-  h1 {
-    margin: 0;
-    font: var(--mat-sys-title-large);
+    background: #fff;
+    box-shadow: var(--pill-shadow);
+
+    .mdc-button__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .glyph {
+      --glyph: 20px;
+    }
+
+    &.select .glyph {
+      color: var(--violet-deep);
+    }
+
+    // Select all: white tick in a deep violet circle.
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(160deg, #5b22c9, var(--violet-deep));
+      color: #fff;
+
+      .glyph {
+        --glyph: 14px;
+      }
+    }
   }
 
-  .sub {
-    margin-left: auto;
-    color: var(--mat-sys-on-surface-variant);
-    font: var(--mat-sys-body-medium);
+  // Coral gradient pills for the main action (Next, Download, Install, Update now).
+  .cta {
+    @include mat.button-overrides(
+      (
+        filled-container-shape: 999px,
+        filled-container-height: 42px,
+        filled-horizontal-padding: 24px,
+        filled-label-text-color: #fff,
+        filled-label-text-size: 15px,
+        filled-label-text-weight: 600,
+        filled-icon-offset: 0,
+        filled-icon-spacing: 10px,
+      )
+    );
+
+    .mdc-button__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .glyph {
+      --glyph: 20px;
+    }
+
+    &:not(:disabled) {
+      background-image: var(--coral-gradient);
+      box-shadow: 0 6px 18px rgb(240 48 93 / 35%);
+    }
+  }
+
+  // Software list ticks are blue; the extra `.panel` makes this beat the panel's violet below.
+  .panel .list mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        state-layer-size: 34px,
+        unselected-icon-color: #49454e,
+        unselected-hover-icon-color: var(--tick),
+        unselected-focus-icon-color: var(--tick),
+        selected-icon-color: var(--tick),
+        selected-focus-icon-color: var(--tick),
+        selected-hover-icon-color: var(--tick),
+        selected-pressed-icon-color: var(--tick),
+        selected-focus-state-layer-color: var(--tick),
+        selected-hover-state-layer-color: var(--tick),
+        selected-pressed-state-layer-color: var(--tick),
+      )
+    );
+  }
+
+  // Ticked boxes are violet with a white tick; empty boxes have a dark outline.
+  .panel mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        label-text-color: var(--ink),
+        unselected-icon-color: #3d3c55,
+        unselected-hover-icon-color: var(--violet),
+        unselected-focus-icon-color: var(--violet),
+        selected-icon-color: var(--violet),
+        selected-focus-icon-color: var(--violet),
+        selected-hover-icon-color: var(--violet),
+        selected-pressed-icon-color: var(--violet),
+        selected-focus-state-layer-color: var(--violet),
+        selected-hover-state-layer-color: var(--violet),
+        selected-pressed-state-layer-color: var(--violet),
+        selected-checkmark-color: #fff,
+      )
+    );
+  }
+
+  mat-form-field {
+    @include mat.form-field-overrides(
+      (
+        outlined-outline-color: #c9c9df,
+        outlined-hover-outline-color: #8d7fd8,
+        outlined-focus-outline-color: var(--violet),
+        outlined-focus-label-text-color: var(--violet),
+      )
+    );
+  }
+}
+
+// Material icons (<mat-icon class="glyph">), sized per place with --glyph. The doubled class
+// outranks Material's own button and form-field icon sizes, which load after these styles.
+mat-icon.mat-icon.glyph {
+  --glyph: 20px;
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+  font-size: var(--glyph);
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/*
+ * Hero: wire-frames/banner.png (public/backgrounds/hero-banner.webp) behind the logo, title,
+ * version and steps. The image runs 72px below the hero and fades out there, so it blends
+ * into the dark top of the page background behind the top of the card, as in the wireframe.
+ */
+.hero {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px clamp(24px, 3vw, 48px) 0;
+  color: #fff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 -72px;
+    z-index: -1;
+    // The navy fade on the left keeps the title readable over the buildings, as in the wireframe.
+    background:
+      linear-gradient(90deg, rgb(4 12 44 / 82%) 0%, rgb(4 12 44 / 50%) 32%, transparent 58%),
+      #0a1640 url('/backgrounds/hero-banner.webp') center 38% / cover no-repeat;
+    mask: linear-gradient(180deg, #000 calc(100% - 110px), transparent);
+  }
+}
+
+.hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.hero-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 35%);
+
+  /*
+   * The title is one lockup: the white logo followed by "installer" set like its wordmark.
+   * Archivo is the closest open font to the wordmark; weight 450, width 95% and -0.02em tracking
+   * match its stroke, letter widths and spacing (fitted against caseware-white.png). The
+   * wordmark's lowercase height is 38/56 of the logo and Archivo's is 0.553em, so the logo is
+   * 0.815em tall; its baseline sits 0.0877 of the logo height above the image bottom, so the
+   * image drops 0.0715em to share the text baseline. Resize the whole lockup with font-size alone.
+   */
+  h1 {
+    margin: 0 0 6px;
+    font-family: 'Archivo Variable', 'Segoe UI', system-ui, sans-serif;
+    font-size: 34px;
+    font-weight: 450;
+    font-stretch: 95%;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    // The logo image has no shadow, so the word beside it has none either.
+    text-shadow: none;
+  }
+
+  p {
+    margin: 0;
+    color: rgb(255 255 255 / 92%);
+    font: var(--mat-sys-body-large);
+    font-size: 16px;
+  }
+}
+
+.hero-logo {
+  height: 0.815em;
+  // A word space after the wordmark's small trademark sign.
+  margin-right: 0.17em;
+  vertical-align: -0.0715em;
+}
+
+.app-version {
+  flex: none;
+  margin-top: 2px;
+  padding: 4px 14px;
+  border: 1.5px solid rgb(255 255 255 / 70%);
+  border-radius: 999px;
+  background: rgb(8 16 52 / 35%);
+  font: var(--mat-sys-label-large);
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+// Steps sit in a translucent navy tab whose bottom edge rests on the card.
+.steps {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: clamp(640px, 78%, 1180px);
+  max-width: 100%;
+  padding: 12px 32px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, rgb(44 64 126 / 55%), rgb(20 36 96 / 60%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  backdrop-filter: blur(6px);
+
+  /*
+   * Step change as one continuous, overlapping movement: the step being left fades and eases
+   * down while the line starts to fill, and the next circle begins lighting before the line has
+   * quite arrived, so nothing waits on anything else. Soft ease-in-out curves, no overshoot.
+   * Going back runs the same way, the line draining.
+   */
+  --step-release: 420ms;
+  --step-line-time: 820ms;
+  --step-line-delay: 80ms;
+  --step-arrive: 520ms; // when the next circle starts lighting, as the line nears it
+  --step-light: 640ms;
+  --ease-release: cubic-bezier(0.4, 0, 0.6, 1); // gentle ease-in-out
+  --ease-travel: cubic-bezier(0.65, 0, 0.35, 1); // smooth ease-in-out
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1); // long, soft ease-out
+}
+
+.step {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+
+  .circle {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    font: var(--mat-sys-title-medium);
+    font-weight: 600;
+    transition: box-shadow var(--step-release) var(--ease-release);
+
+    // The coral fill is its own layer so it can grow and fade (gradients can't transition).
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: 50%;
+      background: var(--step-gradient);
+      opacity: 0;
+      transform: scale(0.8);
+      transition:
+        opacity var(--step-release) var(--ease-release),
+        transform var(--step-release) var(--ease-release);
+    }
+  }
+
+  // The label reserves its bold width (a hidden bold copy from data-label), so turning bold
+  // doesn't nudge the line and circles sideways mid-animation.
+  .label {
+    display: inline-flex;
+    flex-direction: column;
+    font: var(--mat-sys-title-medium);
+    font-size: 16px;
+    white-space: nowrap;
+
+    &::after {
+      content: attr(data-label);
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      font-weight: 700;
+      pointer-events: none;
+    }
+  }
+
+  // The current step is a glowing coral circle with a bold label.
+  &.active {
+    .circle {
+      box-shadow:
+        0 0 0 3px rgb(255 84 96 / 35%),
+        0 0 18px rgb(255 60 96 / 85%);
+      transition: box-shadow 900ms var(--ease-settle) var(--step-arrive);
+
+      &::before {
+        opacity: 1;
+        transform: scale(1);
+        transition:
+          opacity var(--step-light) var(--ease-release) var(--step-arrive),
+          transform var(--step-light) var(--ease-settle) var(--step-arrive);
+      }
+    }
+
+    .label {
+      font-weight: 700;
+    }
+  }
+}
+
+// Lines into completed steps are pink-to-coral; lines ahead are pale lavender. The coral fill
+// is a layer revealed left to right (clip-path keeps the gradient still while it grows).
+.step-line {
+  position: relative;
+  flex: 0 1 150px;
+  min-width: 24px;
+  height: 4px;
+  margin: 0 clamp(12px, 2.2vw, 32px);
+  border-radius: 2px;
+  background: #c3cbf0;
+  box-shadow: 0 0 8px rgb(195 203 240 / 45%);
+  transition: box-shadow var(--step-line-time) var(--ease-travel);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--done-gradient);
+    clip-path: inset(0 100% 0 0 round 2px);
+    // Draining back: the same smooth curve, a touch shorter than filling.
+    transition: clip-path 700ms var(--ease-travel);
+  }
+
+  &.done {
+    box-shadow: 0 0 8px rgb(240 70 140 / 45%);
+    transition: box-shadow var(--step-line-time) var(--ease-travel) var(--step-line-delay);
+
+    &::after {
+      clip-path: inset(0 0 0 0 round 2px);
+      // Filling: starts almost with the release, so the two overlap.
+      transition: clip-path var(--step-line-time) var(--ease-travel) var(--step-line-delay);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step .circle,
+  .step .circle::before,
+  .step-line,
+  .step-line::after {
+    transition: none !important;
   }
 }
 
@@ -31,90 +447,116 @@ main {
   box-sizing: border-box;
   width: 100%;
   min-height: 0;
-  margin: 0 auto;
-  padding: 24px 24px 0;
+  padding: 0 clamp(20px, 2.4vw, 40px) clamp(16px, 2.6vh, 28px);
 }
 
-/* Steps and toolbar stay put; only .content scrolls. */
-.top {
+// The card is always light, in dark mode too: color-scheme makes every light-dark() token
+// and Material colour inside it resolve to the light value.
+.panel {
+  color-scheme: light;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 90%);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  color: var(--ink);
+  // Screen changes cross-fade the card and slide its content (App.changeScreen, styles.scss).
+  view-transition-name: panel;
+
+  .content {
+    view-transition-name: panel-content;
+  }
+
+  // Screens 2 and 3: the toolbar, list and summary sit on a lavender wash, deeper on the left,
+  // lighter on the right. The brand row keeps its own light background.
+  &.software {
+    background: var(--list-bg);
+  }
+}
+
+// Logos, organisation and instructions across the top of the card, with a soft lilac
+// swoosh behind the Adapt IT logo.
+.brand-row {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 32px;
+  border-bottom: 1px solid #e3e4f5;
+  background:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 100' preserveAspectRatio='none'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%23c9bff3' stop-opacity='0'/><stop offset='1' stop-color='%23c9bff3' stop-opacity='.6'/></linearGradient></defs><path d='M0 100C220 100 380 70 600 0V100Z' fill='url(%23g)'/><path d='M140 100C330 96 460 58 600 20V100Z' fill='%23fff' fill-opacity='.55'/></svg>")
+      right bottom / 50% 100% no-repeat,
+    linear-gradient(180deg, #f9f9ff, var(--card));
+
+  h2 {
+    margin: 0 0 2px;
+    color: var(--indigo);
+    font: var(--mat-sys-title-large);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 30px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--ink-soft);
+    font: var(--mat-sys-body-medium);
+    font-size: 14.5px;
+  }
+}
+
+// The divider between the Caseware logo and the heading.
+.brand-text {
+  flex: 1;
+  min-width: 0;
+  padding-left: 24px;
+  border-left: 1px solid var(--divider);
+}
+
+.logo {
+  flex: none;
+  height: 56px;
 }
 
 .content {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 24px;
-}
-
-.steps {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--mat-sys-on-surface-variant);
-
-  &.active,
-  &.done {
-    color: var(--mat-sys-on-surface);
-  }
-
-  .circle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 2px solid var(--mat-sys-outline);
-    border-radius: 50%;
-    font: var(--mat-sys-label-large);
-  }
-
-  &.active .circle,
-  &.done .circle {
-    border-color: var(--mat-sys-primary);
-    background: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-  }
-
-  .label {
-    font: var(--mat-sys-title-small);
-    white-space: nowrap;
-  }
-}
-
-.step-line {
-  flex: 1;
-  max-width: 120px;
-  height: 2px;
-  background: var(--mat-sys-outline-variant);
-
-  &.done {
-    background: var(--mat-sys-primary);
-  }
-}
-
-.panel {
-  background: var(--mat-sys-surface-container-low);
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 12px;
   padding: 24px;
+
+  // Violet-to-magenta scrollbar thumb, as in the wireframe. WebView2 is Chromium, so the
+  // -webkit pseudo-elements apply; scrollbar-color can't take a gradient (and would
+  // override these if set).
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin: 8px 0;
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(180deg, #6825e5, #9a1ec9 55%, #ba33c0);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #5a1bd0, #8a17b8 55%, #a828ae);
+  }
 }
 
-h2 {
-  margin: 0 0 16px;
-  font: var(--mat-sys-title-medium);
-}
-
-h2 {
+.panel-title {
+  margin: 0 0 18px;
+  color: var(--indigo);
   text-align: center;
+  font: var(--mat-sys-title-large);
+  font-size: 18px;
+  font-weight: 700;
 }
 
 form {
@@ -122,7 +564,7 @@ form {
   flex-direction: column;
   gap: 4px;
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   margin: 0 auto;
 
   mat-form-field {
@@ -134,7 +576,8 @@ form {
   margin: 8px 0 4px;
 
   a {
-    color: var(--mat-sys-primary);
+    color: var(--violet);
+    font-weight: 600;
   }
 }
 
@@ -149,27 +592,136 @@ form {
 
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-
-  button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
+  gap: 12px;
+  padding: 14px 24px 6px;
 
   .spacer {
     flex: 1;
   }
+
+  // Buttons keep their size; the search field gives way on narrow windows.
+  > button {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+// Search: a 40px circle holding the magnifier that grows into a pill field when opened.
+// Opening decelerates (emphasized easing) and the text fades in once the pill has room;
+// closing is quicker and accelerates away, the way a hand lets go.
+.search {
+  --search-ease-open: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --search-ease-close: cubic-bezier(0.3, 0, 0.8, 0.15);
+
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  flex: 0 1 40px;
+  min-width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--pill-shadow);
+  color: var(--muted);
+  transition:
+    flex-basis 220ms var(--search-ease-close),
+    border-color 150ms ease;
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--violet);
+  }
+
+  &.open {
+    flex-basis: 380px;
+    transition:
+      flex-basis 420ms var(--search-ease-open),
+      border-color 150ms ease;
+
+    input {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity 240ms ease-out 120ms,
+        transform 360ms var(--search-ease-open) 80ms;
+    }
+
+    .search-icon {
+      cursor: default;
+    }
+  }
+
+  .search-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--violet);
+      outline-offset: -2px;
+    }
+
+    .glyph {
+      --glyph: 20px;
+    }
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 0 4px 0 2px;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: var(--ink);
+    font: var(--mat-sys-body-large);
+    font-size: 15px;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition:
+      opacity 100ms ease-in,
+      transform 160ms var(--search-ease-close);
+
+    &::placeholder {
+      color: #6b6a7d;
+    }
+
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &,
+    &.open,
+    input,
+    &.open input {
+      transition: none;
+    }
+  }
 }
 
 .list {
-  padding: 0;
-  overflow: hidden;
+  // The right margin keeps the scrollbar clear of the card's edge.
+  margin-right: 10px;
+  padding: 4px 14px 12px 24px;
 
   ul {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -179,15 +731,35 @@ form {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 4px 16px;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    padding: 1px 14px 1px 8px;
+    border: 1px solid #fafbfe;
+    border-radius: 12px;
+    background: var(--row);
+    box-shadow: var(--row-shadow);
+    transition:
+      border-color 120ms,
+      box-shadow 120ms;
 
-    &:last-child {
-      border-bottom: 0;
+    &:hover {
+      background: var(--row-hover);
+      box-shadow: 0 5px 16px rgb(50 60 150 / 22%);
+    }
+
+    &.selected {
+      border-color: var(--row-selected-border);
     }
 
     &.match {
+      border-color: #1f4e87;
       background: #1f4e87;
+
+      .mdc-label {
+        color: #fff;
+      }
+
+      .version {
+        color: #d6e4ff;
+      }
     }
 
     mat-checkbox {
@@ -197,34 +769,71 @@ form {
   }
 }
 
-.name-line {
-  flex-wrap: wrap;
-}
-
-.search-field {
-  width: 260px;
-}
-
-.tags {
+.group-title {
   display: flex;
-  flex: 0 1 auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: 60%;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+  color: var(--ink);
+  font: var(--mat-sys-title-medium);
+  font-size: 17px;
+  font-weight: 700;
+
+  &:first-child {
+    margin-top: 4px;
+  }
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 22px;
+    border-radius: 3px;
+    background: currentColor;
+  }
+
+  &.type-cwi::before {
+    background: #f82a71;
+  }
+
+  &.type-other::before {
+    background: #1681fd;
+  }
+
+  &.type-tmpl::before {
+    background: #a223dd;
+  }
+
+  &.type-custom::before {
+    background: #ffb361;
+  }
 }
 
-.tag {
-  padding: 2px 10px;
-  border: 1px solid var(--mat-sys-outline);
-  border-radius: 999px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-small);
-  white-space: nowrap;
+.row-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 6px;
+}
+
+.row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 5px 0;
+}
+
+.name-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
 }
 
 .name {
-  font-weight: 600;
+  font: var(--mat-sys-title-medium);
+  font-size: 15.5px;
+  font-weight: 400;
+  line-height: 21px;
 }
 
 .hit {
@@ -235,71 +844,572 @@ form {
   font-weight: 700;
 }
 
-.row-text {
-  display: flex;
-  flex-direction: column;
-  padding: 6px 0;
-}
-
-.name-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .chip {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 2px 12px;
   border-radius: 999px;
   color: #fff;
-  font: var(--mat-sys-label-small);
+  font: var(--mat-sys-label-medium);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 18px;
   white-space: nowrap;
-  vertical-align: middle;
-}
 
-.chip.new {
-  background: #d93025;
-}
-
-.group-title {
-  margin: 0;
-  padding: 10px 16px;
-  text-align: center;
-  font: var(--mat-sys-title-small);
-  background: var(--mat-sys-surface-container);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
-
-  &.type-cwi {
-    color: #5ea0ff;
-  }
-
-  &.type-other {
-    color: #b39ddb;
-  }
-
-  &.type-tmpl {
-    color: #4fd1c5;
-  }
-
-  &.type-custom {
-    color: #ffb361;
+  &.new {
+    background: var(--new-red);
+    box-shadow: 0 2px 6px rgb(232 32 42 / 28%);
   }
 }
 
 .version {
-  font: var(--mat-sys-body-small);
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--ink-soft);
+  font: var(--mat-sys-body-medium);
+  font-size: 13.5px;
+  line-height: 18px;
+}
+
+.tags {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 60%;
+}
+
+// Licence tags: flat lavender pills with a soft violet outline and dark slate text.
+.tag {
+  padding: 4px 14px;
+  border: 1.5px solid #c4b2fb;
+  border-radius: 999px;
+  background: #e6dfff;
+  box-shadow: 0 1px 3px rgb(90 70 180 / 10%);
+  color: #2f3358;
+  font: var(--mat-sys-label-large);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .empty {
   margin: 0;
   padding: 24px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--muted);
+  text-align: center;
 }
 
-.footer {
-  margin: 12px 0 0;
+.summary {
+  margin: 0 24px;
+  padding: 8px 8px 14px;
+  border-top: 1px solid rgb(255 255 255 / 45%);
+  color: var(--ink);
+  font: var(--mat-sys-body-large);
+  font-size: 15px;
   text-align: right;
-  color: var(--mat-sys-on-surface-variant);
+}
+
+// Download progress under the screen 2 toolbar.
+.progress {
+  margin: 0;
+  padding: 10px 24px 0;
+
+  .hint {
+    margin-top: 6px;
+  }
+}
+
+mat-progress-bar {
+  @include mat.progress-bar-overrides(
+    (
+      active-indicator-color: var(--coral),
+      track-color: rgb(240 48 93 / 16%),
+      track-shape: 999px,
+    )
+  );
+
+  border-radius: 999px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--ink-soft);
   font: var(--mat-sys-body-small);
+}
+
+.ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #1b7f4b;
+
+  .glyph {
+    --glyph: 18px;
+  }
+}
+
+// Product description tooltip trigger beside the name.
+.info {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--violet);
+  font-size: 18px;
+  cursor: help;
+  // A disabled mat-checkbox (downloaded rows) sets pointer-events: none on its whole host, label
+  // included, which would block the tooltip. Re-enable them on the icon; its click handler
+  // stops the click from reaching the checkbox.
+  pointer-events: auto;
+
+  .match & {
+    color: #fff;
+  }
+}
+
+// Rows already downloaded (myapps.json) stay ticked but can't be picked again. They read as
+// "done", not "unavailable": a soft mint row with a green tick and full-strength text, instead
+// of Material's greyed-out disabled look.
+.list li.locked {
+  border-color: var(--done-border);
+  box-shadow: 0 2px 6px rgb(30 120 80 / 12%);
+  cursor: default;
+
+  &:not(.match),
+  &:not(.match):hover {
+    background: var(--done-row);
+  }
+
+  .panel & mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        disabled-label-color: var(--ink),
+        disabled-selected-icon-color: var(--done),
+        disabled-selected-checkmark-color: #fff,
+      )
+    );
+  }
+
+  &.match mat-checkbox {
+    @include mat.checkbox-overrides(
+      (
+        disabled-label-color: #fff,
+      )
+    );
+  }
+}
+
+/*
+ * Registration (screen 1): the form with the notifications banner under it, centred. Next stays
+ * in the toolbar above, where Download is on screen 2. fitToWindow() keeps it from scrolling.
+ */
+.register {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  // On large windows the content keeps its natural height, centred, instead of stretching.
+  align-content: center;
+  padding: 6px 24px 10px;
+}
+
+// Set for a moment by App.fitToWindow() to measure the content's natural height.
+.register.measuring {
+  align-content: start;
+  align-items: start;
+}
+
+.register-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.register-form {
+  padding-top: 2px;
+
+  .panel-title {
+    margin-bottom: 14px;
+    font-size: 20px;
+  }
+
+  form {
+    gap: 10px;
+    max-width: 480px;
+  }
+
+  mat-form-field {
+    @include mat.form-field-overrides(
+      (
+        container-height: 50px,
+        container-vertical-padding: 13px,
+        outlined-container-shape: 12px,
+      )
+    );
+  }
+
+  // White fields. Material has no token for an outlined field's fill.
+  .mat-mdc-text-field-wrapper {
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgb(40 35 110 / 6%);
+  }
+
+  .eula {
+    margin: 0;
+  }
+}
+
+mat-icon.field-icon.glyph {
+  --glyph: 20px;
+  // Material pads form-field prefix icons by 12px a side; the margin below sets the spacing.
+  padding: 0;
+  margin: 0 4px 0 14px;
+  color: var(--ink);
+}
+
+/*
+ * Notifications banner: the artwork of wire-frames/correct-banner.png with its text and sample QR
+ * code removed (public/backgrounds/notifications-banner.webp, 1300px wide for high-DPI screens),
+ * and those drawn here with the
+ * genuine QR code. It is a size container, so its text scales with its width and, when it is
+ * narrow, the phone art gives its room to the text.
+ */
+.notify {
+  container-type: inline-size;
+  align-self: center;
+  width: 100%;
+  max-width: 760px;
+  margin-top: auto;
+}
+
+.notify-inner {
+  display: grid;
+  grid-template-columns: max(150px, 24%) minmax(0, 1fr) auto;
+  grid-template-areas: 'art text qr';
+  align-items: center;
+  column-gap: 22px;
+  // The extra room at the bottom is for the waves, as in the banner.
+  padding: 20px 26px 32px 0;
+  overflow: hidden;
+  border: 1px solid #fff;
+  border-radius: 24px;
+  background: #efe2fd url('/backgrounds/notifications-banner.webp') left center / cover no-repeat;
+  box-shadow: 0 12px 28px rgb(60 40 150 / 14%);
+  color: #14104a;
+}
+
+.notify-text {
+  grid-area: text;
+  padding-left: 24px;
+  border-left: 1.5px solid #8a72d4;
+
+  h3 {
+    margin: 0 0 8px;
+    color: #0f0b40;
+    font: var(--mat-sys-title-large);
+    font-size: clamp(18px, 3.1cqw, 27px);
+    font-weight: 700;
+    line-height: 1.22;
+
+    // "Caseware Notifications App" in the banner's pink-to-purple.
+    span {
+      display: block;
+      background: linear-gradient(90deg, #ec1b6a 0%, #e0137f 55%, #b106e3 100%);
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  p {
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    font-size: clamp(13px, 1.95cqw, 16.5px);
+    line-height: 1.45;
+  }
+}
+
+.notify-qr {
+  display: flex;
+  flex-direction: column;
+  grid-area: qr;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+
+  img {
+    display: block;
+    box-sizing: content-box;
+    width: clamp(84px, 14cqw, 120px);
+    height: auto;
+    // Square before it loads, so fitToWindow() measures the right height.
+    aspect-ratio: 1;
+    padding: 7px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 6px 16px rgb(60 50 140 / 15%);
+  }
+
+  figcaption {
+    font: var(--mat-sys-body-medium);
+    font-size: clamp(12.5px, 1.8cqw, 15px);
+    white-space: nowrap;
+  }
+}
+
+// Narrow banners show the plain right side of the artwork (no phone) and use the full width.
+@container (max-width: 600px) {
+  .notify-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'text qr';
+    padding-left: 22px;
+    // Scaled up and anchored right so the phone and bell sit fully outside the banner.
+    background-size: auto 140%;
+    background-position: right bottom;
+  }
+
+  .notify-text {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+// Mandatory update prompt: covers the app and can't be dismissed.
+.blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(6 12 46 / 55%);
+  backdrop-filter: blur(6px);
+}
+
+.blocker-card {
+  color-scheme: light;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(480px, 100%);
+  padding: 28px;
+  border: 1px solid #fff;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  color: var(--ink);
+
+  h2 {
+    margin: 0;
+    color: var(--indigo);
+    font: var(--mat-sys-headline-small);
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  mat-progress-bar {
+    width: 100%;
+  }
+
+  .error {
+    justify-content: flex-start;
+  }
+}
+
+.blocker-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--coral-gradient);
+  color: #fff;
+
+  .glyph {
+    --glyph: 24px;
+  }
+}
+
+// Short windows (down to the 640px minimum): tighten the hero and brand row so the list
+// keeps most of the height.
+@media (max-height: 720px) {
+  .hero {
+    gap: 10px;
+    padding-top: 12px;
+  }
+
+  .hero-brand {
+    // Scales the whole logo lockup (the logo is sized in em): a 24px logo.
+    h1 {
+      font-size: 29px;
+    }
+
+    p {
+      font-size: 14px;
+    }
+  }
+
+  .steps {
+    padding: 8px 28px;
+  }
+
+  .step .circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-row {
+    padding: 8px 28px;
+
+    h2 {
+      font-size: 20px;
+      line-height: 26px;
+    }
+  }
+
+  .logo {
+    height: 48px;
+  }
+}
+
+/*
+ * Notifications (App.notify): a clean white card in the installer's palette, bottom centre, over
+ * everything but the loader and the update blocker. A coloured icon says what kind it is: green
+ * tick for success (the same green as downloaded rows), violet info otherwise. It fades in with
+ * a slight rise and fades out smoothly; a replacement fades in while the old one fades out.
+ */
+.toasts {
+  position: fixed;
+  right: 0;
+  bottom: 24px;
+  left: 0;
+  z-index: 950;
+  display: grid;
+  justify-items: center;
+  padding: 0 16px;
+  pointer-events: none;
+
+  // A replacement and the one leaving share the same spot.
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(640px, 100%);
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff, #f7f7fe);
+  box-shadow:
+    0 14px 36px rgb(24 20 90 / 22%),
+    0 2px 8px rgb(24 20 90 / 10%);
+  color: var(--ink);
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 420ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  &.toast-leave {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 360ms cubic-bezier(0.4, 0, 0.6, 1),
+      transform 360ms cubic-bezier(0.4, 0, 0.6, 1);
+  }
+}
+
+.toast-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgb(106 23 208 / 10%);
+  color: var(--violet);
+
+  mat-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+  }
+
+  .glyph {
+    --glyph: 18px;
+  }
+
+  .success & {
+    background: var(--done);
+    box-shadow: 0 3px 10px rgb(30 158 91 / 32%);
+    color: #fff;
+  }
+}
+
+.toast-text {
+  min-width: 0;
+}
+
+.toast-message {
+  margin: 0;
+  font: var(--mat-sys-title-small);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.toast-detail {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font: var(--mat-sys-body-medium);
+  font-size: 13px;
+  line-height: 18px;
+  // Folder paths have few spaces; let them break anywhere rather than overflow.
+  overflow-wrap: anywhere;
+}
+
+.toast-ok {
+  flex: none;
+  margin-left: 8px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--violet);
+  font: var(--mat-sys-label-large);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms;
+
+  &:hover {
+    background: rgb(106 23 208 / 9%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.toast-leave {
+    transition: none;
+  }
 }

@@ -50,3 +50,7 @@ Thumbs.db
 # Tauri build output and generated schemas
 /src-tauri/target
 /src-tauri/gen
+
+# Design references and source art: kept locally, not in the repository. The app uses its own
+# exports in public/ (see the setup-installer-ui skill).
+/wire-frames/
