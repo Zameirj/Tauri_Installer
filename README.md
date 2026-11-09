@@ -62,7 +62,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 - **EULA checkbox** is required. The "EULA" link opens the PDF in the default browser through `@tauri-apps/plugin-opener`. The click does not toggle the checkbox.
 - **Next** stays disabled until the form is valid and the EULA box is ticked. It sits at the top right of the panel, and a spinner appears beside it while the request runs.
 - On success the app moves to screen 2. On failure the error message appears below the EULA checkbox.
-- The layout is based on `wire-frames/registration_page_assets/04_registration_design_reference.png`, without its side panel: the form, centred, with the **notifications banner** under it with the QR code for the Caseware notifications app. The banner art is `wire-frames/correct-banner.png` with its text and sample QR code removed (`public/backgrounds/notifications-banner.webp`); the app draws the text itself and shows the genuine QR code (`public/caseware-mobile-qr.svg`, which opens https://mobile.prod.casewareafrica.com/) with "Scan to Download". The old coral Caseware marks on the phone, the bell badge and in the centre of the QR code are replaced with the gradient mark.
+- The layout is based on `wire-frames/registration_page_assets/04_registration_design_reference.png`, without its side panel: the form, centred, with the **notifications banner** under it with the QR code for the Caseware notifications app. The banner art is `wire-frames/correct-banner.png` with its text and sample QR code removed (`public/backgrounds/notifications-banner.webp`); the app draws the text itself ("Download the Caseware Notifications App") and shows the genuine QR code (`public/caseware-mobile-qr.svg`, which opens https://mobile.prod.casewareafrica.com/) with "Scan to Download". The old coral Caseware marks on the phone, the bell badge and in the centre of the QR code are replaced with the gradient mark.
 
 ### Screen 2: My Software
 
@@ -70,7 +70,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 2. **Products within a group are sorted by name** (`localeCompare`).
 3. **Each row** has a checkbox, the product name (with a red "New!" badge when `notification` is set), and the version in a smaller font below the name.
 4. **Template rows only** show their licence tags on the right, one per `licences[].tagName`. Double spaces in tag names are collapsed. Tags wrap and take at most 60% of the row, so the name is never squashed.
-5. **Toolbar** at the top of the list panel: Back on the left; a search button, Select all, Select none and **Download (n)**. Download is disabled at 0 and shows the number selected. It downloads the selected products one at a time with a progress bar under the toolbar, extracts them with the bundled 7-Zip, then opens step 3. Products already downloaded stay ticked and locked.
+5. **Toolbar** at the top of the list panel: Back on the left; a search button, Select all, Select none and **Download (n)**. Download is disabled at 0 and shows the number selected. It downloads the selected products one at a time with a progress bar under the toolbar, extracts them with 7-Zip (compiled into the exe), then opens step 3. Products already downloaded stay ticked and locked.
 6. **Search** matches only the product name. Each word typed must fuzzy-match the name in any order: the letters must appear in order but need not be adjacent. Matching rows get a blue background and the matched letters a yellow highlight. Rows that do not match stay visible. The footer shows "N matching" while a search is active. The search starts as a magnifier button; clicking it opens and focuses the field, which collapses again when it is empty and loses focus. Escape or the × clears the search.
 7. **Summary** at the foot of the list panel shows "N products · N selected", plus "· N matching" during a search.
 
@@ -78,6 +78,7 @@ The app has a three-step header. Only the first two steps have screens so far.
 
 - The hero (title and steps), the card's brand row and the toolbar are fixed. Only the `.content` area scrolls.
 - The look follows the company-branding wireframe (`wire-frames/Caseware Installer company-branding.png`) in both light and dark mode: a dark hero over `wire-frames/banner.png` and a light card over `wire-frames/background.png` (both exported to WebP in `public/backgrounds`). App styles are in `src/app/app.scss`, loaded globally from `styles.scss`.
+- `wire-frames/` holds the design sources (wireframes and source art). It is a local folder that git ignores, so it is not in the repository. The app only uses the exports in `public/`.
 - The Caseware logo uses the gradient mark (`wire-frames/caseware-mark-gradient.png`). `app-icon.png` is a 1024px version of it and the source for the window and taskbar icons: run `pnpm tauri icon` to regenerate `src-tauri/icons`.
 - The window opens at 1377 × 835 (`tauri.conf.json`). Minimum size is 900 × 640.
 
