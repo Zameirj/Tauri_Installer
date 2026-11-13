@@ -12,7 +12,7 @@ export const UPDATE_CHECK_URL = 'https://api.test.casewareafrica.com/api/tauri-p
  * "Update now" asks this endpoint (POST { "key": ... }) for a temporary signed download link.
  * It answers { "url": "https://...", "success": true }.
  */
-export const UPDATE_SIGNED_URL_ENDPOINT = 'https://api.test.casewareafrica.com/api/awsStorage/get-signed-url';
+export const UPDATE_SIGNED_URL_ENDPOINT = 'https://api.prod.casewareafrica.com/api/awsStorage/get-signed-url';
 
 /** Storage key of the installer; {version} is replaced with the version the update check reported. */
 export const UPDATE_FILE_KEY = 'tauriApps/CasewareInstaller/{version}/CasewareInstaller.exe'; // TODO: confirm the storage key

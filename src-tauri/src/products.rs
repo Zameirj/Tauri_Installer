@@ -8,14 +8,17 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
-use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::applog;
 use crate::update::{download, signed_url};
 
 /// Storage endpoint that signs download links. Same service as the Installer's self-update.
-const SIGNED_URL_ENDPOINT: &str = "https://api.test.casewareafrica.com/api/awsStorage/get-signed-url";
+const SIGNED_URL_ENDPOINT: &str = "https://api.prod.casewareafrica.com/api/awsStorage/get-signed-url";
+
+/// 7-Zip console tool, compiled into the exe. A portable build is a single file, so it cannot rely
+/// on a resources folder beside it.
+const SEVEN_ZIP: &[u8] = include_bytes!("../resources/7za/7za.exe");
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,15 +93,28 @@ fn extract_archive(tool: &Path, archive: &Path, dir: &Path, password: &str) -> R
     }
 }
 
+/// Writes the embedded 7-Zip to the app's local data folder (once per size) and returns its path.
+fn seven_zip_tool(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("No app data folder: {e}"))?
+        .join("tools");
+    fs::create_dir_all(&dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
+    let tool = dir.join("7za.exe");
+    let current = fs::metadata(&tool).map(|m| m.len() == SEVEN_ZIP.len() as u64).unwrap_or(false);
+    if !current {
+        fs::write(&tool, SEVEN_ZIP).map_err(|e| format!("Could not write 7-Zip to {}: {e}", tool.display()))?;
+    }
+    Ok(tool)
+}
+
 /// Extracts each downloaded archive into its product folder, then deletes the archive.
 /// Stops at the first failure and keeps that archive for inspection.
 #[tauri::command]
 pub async fn extract_products(app: AppHandle, items: Vec<DownloadItem>) -> Result<Vec<String>, String> {
     let folder = target_folder(&app)?;
-    let tool = app
-        .path()
-        .resolve("resources/7za/7za.exe", BaseDirectory::Resource)
-        .map_err(|e| format!("The bundled 7-Zip tool was not found: {e}"))?;
+    let tool = seven_zip_tool(&app)?;
     let mut extracted = Vec::with_capacity(items.len());
 
     for item in items {
